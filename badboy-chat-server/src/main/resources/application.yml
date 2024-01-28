@@ -1,0 +1,41 @@
+spring:
+  profiles:
+    #运行的环境
+    active: test
+  application:
+    name: badboy-chat
+  mvc:
+    pathmatch:
+      matching-strategy: ANT_PATH_MATCHER
+  datasource:
+    url: jdbc:mysql://${badboy-chat.mysql.ip}:${badboy-chat.mysql.port}/${badboy-chat.mysql.db}?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: ${badboy-chat.mysql.username}
+    password: ${badboy-chat.mysql.password}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  redis:
+    # Redis服务器地址
+    host: ${badboy-chat.redis.host}
+    # Redis服务器端口号
+    port: ${badboy-chat.redis.port}
+    # 使用的数据库索引，默认是0
+    database: 0
+    # 连接超时时间
+    timeout: 1800000
+    # 设置密码
+    password: ${badboy-chat.redis.password}
+  jackson:
+    serialization:
+      write-dates-as-timestamps: true
+
+wx:
+  mp:
+    #    callback: http://f4cd-113-92-129-127.ngrok.io
+    callback: ${badboychat.wx.callback}
+    configs:
+      - appId: ${badboychat.wx.appId} # 第一个公众号的appid
+        secret: ${badboychat.wx.appSecret} # 公众号的appsecret
+        token: ${badboychat.wx.token} # 接口配置里的Token值
+        aesKey: ${badboychat.wx.aesKey} # 接口配置里的EncodingAESKey值
+
+jwt:
+  secret: ${badboychat.jwt.secret}
