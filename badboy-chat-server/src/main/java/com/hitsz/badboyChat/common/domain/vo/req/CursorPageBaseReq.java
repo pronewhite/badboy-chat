@@ -17,7 +17,7 @@ import javax.validation.constraints.Min;
 @ApiModel("游标翻页请求")
 @AllArgsConstructor
 @NoArgsConstructor
-public class CursorPageBaseReq {
+public class CursorPageBaseReq<T> {
 
     @ApiModelProperty("页面大小")
     @Min(0)

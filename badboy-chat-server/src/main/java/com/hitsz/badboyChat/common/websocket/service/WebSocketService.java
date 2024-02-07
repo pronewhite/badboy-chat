@@ -1,5 +1,7 @@
 package com.hitsz.badboyChat.common.websocket.service;
 
+import com.hitsz.badboyChat.common.websocket.domain.vo.resp.WSBaseResp;
+import com.hitsz.badboyChat.common.websocket.domain.vo.resp.WSBlack;
 import io.netty.channel.Channel;
 import me.chanjar.weixin.common.error.WxErrorException;
 
@@ -47,4 +49,11 @@ public interface WebSocketService {
      * @param token token
      */
     void authroize(Channel channel, String token);
+
+    /**
+     * 向所有在线用户推送消息
+     * @param resp
+     * @param id
+     */
+    void sendMsgToAll(WSBaseResp<WSBlack> resp, Long id);
 }

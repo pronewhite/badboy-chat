@@ -1,5 +1,6 @@
 package com.hitsz.badboyChat.common.websocket.service.adapter;
 
+import com.hitsz.badboyChat.common.enums.YesOrNoEnum;
 import com.hitsz.badboyChat.common.user.domain.entity.User;
 import com.hitsz.badboyChat.common.websocket.domain.enums.WSRespTypeEnum;
 import com.hitsz.badboyChat.common.websocket.domain.vo.resp.WSBaseResp;
@@ -22,13 +23,14 @@ public class WebSocketAdapter {
         return resp;
     }
 
-    public static WSBaseResp<?> buildLoginSuccessResp(User user, String token) {
+    public static WSBaseResp<?> buildLoginSuccessResp(User user, String token, boolean hasPower) {
         WSBaseResp<WSLoginSuccess> resp = new WSBaseResp<>();
         WSLoginSuccess build = WSLoginSuccess.builder()
                 .avatar(user.getAvatar())
                 .uid(user.getId())
                 .name(user.getName())
                 .token(token)
+                .power(hasPower ? YesOrNoEnum.YES.getCode() : YesOrNoEnum.NO.getCode())
                 .build();
         resp.setData(build);
         resp.setType(WSRespTypeEnum.LOGIN_SUCCESS.getType());

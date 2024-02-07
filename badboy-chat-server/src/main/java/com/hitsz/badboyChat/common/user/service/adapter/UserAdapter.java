@@ -1,5 +1,6 @@
 package com.hitsz.badboyChat.common.user.service.adapter;
 
+import com.hitsz.badboyChat.common.enums.IdempotentEnum;
 import com.hitsz.badboyChat.common.enums.YesOrNoEnum;
 import com.hitsz.badboyChat.common.user.domain.entity.ItemConfig;
 import com.hitsz.badboyChat.common.user.domain.entity.User;
@@ -51,5 +52,14 @@ public class UserAdapter {
         }).sorted(Comparator.comparing(BadgeResp::getWearing, Comparator.reverseOrder())
                 .thenComparing(BadgeResp::getObtain, Comparator.reverseOrder()))
                 .collect(Collectors.toList());
+    }
+
+    public static UserBackpack buildSendItemUserBack(Long uid, Long itemId, String itemPotent) {
+        return UserBackpack.builder()
+                .uid(uid)
+                .itemId(itemId)
+                .status(YesOrNoEnum.NO.getCode())
+                .idempotent(itemPotent)
+                .build();
     }
 }

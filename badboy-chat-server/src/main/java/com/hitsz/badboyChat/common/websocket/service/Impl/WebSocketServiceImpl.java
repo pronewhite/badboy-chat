@@ -4,25 +4,35 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.hitsz.badboyChat.common.config.ThreadPoolConfig;
+import com.hitsz.badboyChat.common.enums.RoleTypeEnum;
+import com.hitsz.badboyChat.common.event.UserOnlineEvent;
 import com.hitsz.badboyChat.common.user.domain.entity.User;
 import com.hitsz.badboyChat.common.user.mapper.UserMapper;
+import com.hitsz.badboyChat.common.user.service.RoleService;
 import com.hitsz.badboyChat.common.user.service.UserService;
 import com.hitsz.badboyChat.common.websocket.domain.dto.WSChannelUserDTO;
 import com.hitsz.badboyChat.common.websocket.domain.vo.resp.WSBaseResp;
+import com.hitsz.badboyChat.common.websocket.domain.vo.resp.WSBlack;
 import com.hitsz.badboyChat.common.websocket.service.WebSocketService;
 import com.hitsz.badboyChat.common.websocket.service.adapter.WebSocketAdapter;
+import com.hitsz.badboyChat.common.websocket.utils.NettyUtils;
 import io.netty.channel.Channel;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import me.chanjar.weixin.common.error.WxErrorException;
 import me.chanjar.weixin.mp.api.WxMpService;
 import me.chanjar.weixin.mp.bean.result.WxMpQrCodeTicket;
-import org.apache.ibatis.ognl.Ognl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadPoolExecutor;
 
 /**
  * @author badboy
@@ -47,12 +57,17 @@ public class WebSocketServiceImpl implements WebSocketService {
 
     @Autowired
     private WxMpService wxMpService;
-
     @Autowired
     private UserMapper userMapper;
-
     @Autowired
     private UserService userService;
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
+    @Autowired
+    private RoleService roleService;
+    @Autowired
+    @Qualifier(ThreadPoolConfig.WS_EXECUTOR)
+    private ThreadPoolTaskExecutor threadPoolTaskExecutor;
 
     @Override
     public void connect(Channel channel) {
@@ -111,6 +126,18 @@ public class WebSocketServiceImpl implements WebSocketService {
         }
     }
 
+    @Override
+    public void sendMsgToAll(WSBaseResp<WSBlack> resp, Long id) {
+        ON_LINE_WS_MAP.forEach((channel,etx) -> {
+            if(Objects.nonNull(etx.getUid()) && etx.getUid().equals(id)){
+                return;
+            }
+            threadPoolTaskExecutor.execute(() -> {
+                sendMsg(channel, resp);
+            });
+        });
+    }
+
     /**
      *  登录成功后，完成相关操作
      * @param channel
@@ -121,7 +148,12 @@ public class WebSocketServiceImpl implements WebSocketService {
         WSChannelUserDTO wsChannelUserDTO = ON_LINE_WS_MAP.get(channel);
         wsChannelUserDTO.setUid(String.valueOf(user.getId()));
         // 推送登录成功消息
-        sendMsg(channel, WebSocketAdapter.buildLoginSuccessResp(user,token));
+        boolean hasPower = roleService.hasPower(user.getId(), RoleTypeEnum.ADMIN);
+        sendMsg(channel, WebSocketAdapter.buildLoginSuccessResp(user,token,hasPower));
+        // 推送用户在线事件
+        user.setLastOptTime(new Date());
+        user.refreshIp(NettyUtils.getAttr(channel, NettyUtils.IP));
+        applicationEventPublisher.publishEvent(new UserOnlineEvent(this, user));
     }
 
     /**

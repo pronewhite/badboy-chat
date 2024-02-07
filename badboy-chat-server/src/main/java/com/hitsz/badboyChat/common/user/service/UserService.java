@@ -1,7 +1,9 @@
 package com.hitsz.badboyChat.common.user.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.hitsz.badboyChat.common.enums.IdempotentEnum;
 import com.hitsz.badboyChat.common.user.domain.entity.User;
+import com.hitsz.badboyChat.common.user.domain.vo.req.BlackUserReq;
 import com.hitsz.badboyChat.common.user.domain.vo.req.WearBadgeReq;
 import com.hitsz.badboyChat.common.user.domain.vo.resp.BadgeResp;
 import com.hitsz.badboyChat.common.user.domain.vo.resp.UserInfoResp;
@@ -49,4 +51,12 @@ public interface UserService extends IService<User> {
     List<BadgeResp> getBadges(Long uid);
 
     void wearBadge(Long uid, WearBadgeReq wearBadgeReq);
+
+    void acquireItem(Long uid, Long itemId, IdempotentEnum itemPotent, String businessId);
+
+    /**
+     *  拉黑用户
+     * @param blackUserReq 拉黑信息
+     */
+    void blackUser(BlackUserReq blackUserReq);
 }

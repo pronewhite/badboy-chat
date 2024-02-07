@@ -1,10 +1,10 @@
 package com.hitsz.badboyChat.common.user.domain.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
+import com.baomidou.mybatisplus.annotation.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -15,6 +15,9 @@ import java.util.Date;
  */
 @TableName(value ="user_backpack")
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class UserBackpack implements Serializable {
     /**
      * id
@@ -62,6 +65,7 @@ public class UserBackpack implements Serializable {
      * 是否删除 0未删除 1已删除
      */
     @TableField(value = "is_deleted")
+    @TableLogic
     private Integer isDeleted;
 
     @TableField(exist = false)

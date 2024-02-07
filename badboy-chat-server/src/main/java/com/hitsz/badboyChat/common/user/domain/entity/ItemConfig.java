@@ -2,6 +2,7 @@ package com.hitsz.badboyChat.common.user.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
@@ -55,6 +56,7 @@ public class ItemConfig implements Serializable {
      * 是否删除 0未删除 1已删除
      */
     @TableField(value = "is_deleted")
+    @TableLogic
     private Integer isDeleted;
 
     @TableField(exist = false)

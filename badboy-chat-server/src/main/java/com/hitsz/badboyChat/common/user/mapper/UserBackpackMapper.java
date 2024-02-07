@@ -35,6 +35,13 @@ public interface UserBackpackMapper extends BaseMapper<UserBackpack> {
                 .eq(UserBackpack::getUid,uid)
                 .eq(UserBackpack::getIsDeleted,Boolean.FALSE));
     }
+
+    default UserBackpack getItemByItenPotent(String itemPotent){
+        return selectOne(new LambdaQueryWrapper<UserBackpack>()
+                .eq(UserBackpack::getIdempotent,itemPotent)
+                .eq(UserBackpack::getIsDeleted,Boolean.FALSE));
+    }
+
 }
 
 

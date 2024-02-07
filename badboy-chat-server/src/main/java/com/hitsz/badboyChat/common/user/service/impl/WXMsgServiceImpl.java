@@ -40,14 +40,11 @@ public class WXMsgServiceImpl implements WXMsgService {
 
     @Autowired
     private UserService userService;
-
     @Autowired
     private UserMapper userMapper;
-
     @Autowired
     @Lazy
     private WxMpService wxMpService;
-
     @Autowired
     @Lazy
     private WebSocketService webSocketService;
@@ -90,7 +87,7 @@ public class WXMsgServiceImpl implements WXMsgService {
             return;
         }
         if(StringUtils.isBlank(user.getAvatar())){
-            // 填充用户信息
+            // 填充并更新用户信息
             fillUserInfo( user,userInfo);
         }
         Integer code = WAIT_AUTHROIZE_MAP.remove(userInfo.getOpenid());

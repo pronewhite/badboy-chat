@@ -1,11 +1,15 @@
 package com.hitsz.badboyChat.common.user.controller;
 
 import com.hitsz.badboyChat.common.domain.vo.resp.ApiResult;
+import com.hitsz.badboyChat.common.enums.RoleTypeEnum;
+import com.hitsz.badboyChat.common.user.domain.vo.req.BlackUserReq;
 import com.hitsz.badboyChat.common.user.domain.vo.req.ModifyName;
 import com.hitsz.badboyChat.common.user.domain.vo.req.WearBadgeReq;
 import com.hitsz.badboyChat.common.user.domain.vo.resp.BadgeResp;
 import com.hitsz.badboyChat.common.user.domain.vo.resp.UserInfoResp;
+import com.hitsz.badboyChat.common.user.service.RoleService;
 import com.hitsz.badboyChat.common.user.service.UserService;
+import com.hitsz.badboyChat.common.user.utils.AssertUtil;
 import com.hitsz.badboyChat.common.user.utils.RequestHolder;
 import io.swagger.annotations.ApiOperation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +29,8 @@ public class UserController {
 
     @Autowired
     private UserService userService;
+    @Autowired
+    private RoleService roleService;
 
     @GetMapping("/public/userInfo")
     @ApiOperation(value = "获取用户信息")
@@ -56,5 +62,15 @@ public class UserController {
         return ApiResult.success();
     }
 
+    @PutMapping("/black")
+    @ApiOperation(value = "拉黑用户")
+    public ApiResult<Void> blackUser(@Valid @RequestBody BlackUserReq blackUserReq){
+        // 取出用户id
+        Long uid = RequestHolder.get().getUid();
+        boolean hasPower = roleService.hasPower(uid, RoleTypeEnum.ADMIN);
+        AssertUtil.isTrue(hasPower,"权限不足");
+        userService.blackUser(blackUserReq);
+        return ApiResult.success();
+    }
 
 }

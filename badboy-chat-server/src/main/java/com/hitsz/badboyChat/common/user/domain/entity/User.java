@@ -1,11 +1,8 @@
 package com.hitsz.badboyChat.common.user.domain.entity;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Builder;
-import lombok.Data;
+import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
+import lombok.*;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -14,9 +11,12 @@ import java.util.Date;
  * 用户表
  * @TableName user
  */
-@TableName(value ="user")
+@TableName(value ="user", autoResultMap = true)
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@EqualsAndHashCode(callSuper = false)
 public class User implements Serializable {
     /**
      * 用户id
@@ -63,8 +63,8 @@ public class User implements Serializable {
     /**
      * ip信息
      */
-    @TableField(value = "ip_info")
-    private Object ipInfo;
+    @TableField(value = "ip_info",typeHandler = JacksonTypeHandler.class)
+    private IpInfo ipInfo;
 
     /**
      * 佩戴的徽章id
@@ -94,8 +94,16 @@ public class User implements Serializable {
      * 逻辑删除
      */
     @TableField(value = "is_deleted")
+    @TableLogic
     private Integer isDeleted;
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
+
+    public void refreshIp(String ip){
+        if(ipInfo == null){
+            ipInfo = new IpInfo();
+        }
+        ipInfo.refreshIp(ip);
+    }
 }

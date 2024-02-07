@@ -1,25 +1,38 @@
 package com.hitsz.badboyChat.common.user.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hitsz.badboyChat.common.annotation.RedissionLock;
 import com.hitsz.badboyChat.common.constant.RedisKey;
+import com.hitsz.badboyChat.common.enums.BlackTypeEnum;
+import com.hitsz.badboyChat.common.enums.IdempotentEnum;
 import com.hitsz.badboyChat.common.enums.ItemEnum;
 import com.hitsz.badboyChat.common.enums.ItemTypeEnum;
+import com.hitsz.badboyChat.common.event.UserBlackEvent;
+import com.hitsz.badboyChat.common.event.UserRegisterEvent;
+import com.hitsz.badboyChat.common.service.LockService;
+import com.hitsz.badboyChat.common.user.domain.entity.Black;
 import com.hitsz.badboyChat.common.user.domain.entity.ItemConfig;
 import com.hitsz.badboyChat.common.user.domain.entity.User;
 import com.hitsz.badboyChat.common.user.domain.entity.UserBackpack;
+import com.hitsz.badboyChat.common.user.domain.vo.req.BlackUserReq;
 import com.hitsz.badboyChat.common.user.domain.vo.req.WearBadgeReq;
 import com.hitsz.badboyChat.common.user.domain.vo.resp.BadgeResp;
 import com.hitsz.badboyChat.common.user.domain.vo.resp.UserInfoResp;
-import com.hitsz.badboyChat.common.user.mapper.ItemConfigMapper;
-import com.hitsz.badboyChat.common.user.mapper.UserBackpackMapper;
-import com.hitsz.badboyChat.common.user.mapper.UserMapper;
+import com.hitsz.badboyChat.common.user.mapper.*;
+import com.hitsz.badboyChat.common.user.service.UserBackpackService;
 import com.hitsz.badboyChat.common.user.service.UserService;
 import com.hitsz.badboyChat.common.user.service.adapter.UserAdapter;
 import com.hitsz.badboyChat.common.user.service.cache.ItemCache;
 import com.hitsz.badboyChat.common.user.utils.AssertUtil;
 import com.hitsz.badboyChat.common.user.utils.JwtUtils;
 import com.hitsz.badboyChat.common.user.utils.RedisCommonProcessor;
+import org.apache.commons.lang3.StringUtils;
+import org.checkerframework.checker.units.qual.A;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -40,28 +53,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     public static final long TIME_EXPIRE = 7L;
     @Autowired
     private JwtUtils jwtUtils;
-
     @Autowired
     private RedisCommonProcessor redisCommonProcessor;
-
     @Autowired
     private UserMapper userMapper;
-
     @Autowired
     private UserBackpackMapper userBackpackMapper;
-
     @Autowired
     private ItemCache itemCache;
-
     @Autowired
-    private ItemConfigMapper itemConfigMapper;
+    @Lazy
+    private UserServiceImpl userService;
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
+    @Autowired
+    private UserRoleMapper userRoleMapper;
+    @Autowired
+    private BlackMapper blackMapper;
 
 
     @Override
     public void register(User insert) {
         userMapper.insert(insert);
-        //todo 推送用户注册的事件，用户注册成功后系统会给用户发送系列物品
-
+        //推送用户注册的事件，用户注册成功后系统会给用户发送系列物品
+        applicationEventPublisher.publishEvent(new UserRegisterEvent(this, insert));
     }
 
     @Override
@@ -150,6 +165,57 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         // 佩戴徽章
         user.setItemId(wearBadgeReq.getItemId());
         userMapper.updateById(user);
+    }
+
+    @Override
+    public void acquireItem(Long uid, Long itemId, IdempotentEnum idempotentEnum, String businessId) {
+        String itemPotent = getItemPotent(itemId,idempotentEnum.getType(), businessId);
+        // 自己调用自己使事务和注解生效
+        userService.doAcquireItem(uid, itemId, itemPotent);
+    }
+
+    @Override
+    public void blackUser(BlackUserReq blackUserReq) {
+        Long blackUserId = blackUserReq.getUserId();
+        Black blackUser = new Black();
+        blackUser.setType(BlackTypeEnum.UID.getCode());
+        blackUser.setTarget(blackUserId.toString());
+        blackMapper.insert(blackUser);
+        User blackUserInfo = userMapper.selectById(blackUserId);
+        // 封掉用户ip
+        blackIp(blackUserInfo.getIpInfo().getCreateIp());
+        blackIp(blackUserInfo.getIpInfo().getUpdateIp());
+        applicationEventPublisher.publishEvent(new UserBlackEvent(this,blackUserInfo));
+    }
+
+    private void blackIp(String ip) {
+        if(StringUtils.isBlank(ip)){
+            return;
+        }
+        try{
+            Black user = new Black();
+            user.setType(BlackTypeEnum.IP.getCode());
+            user.setTarget(ip);
+            blackMapper.insert(user);
+        }catch (Exception e){
+            log.error("封号ip异常",e);
+        }
+    }
+
+    @RedissionLock(key = "#itemPotent", waitTime = 5)
+    public void doAcquireItem(Long uid, Long itemId, String itemPotent) {
+        // 判断幂等
+        UserBackpack userBackpack = userBackpackMapper.getItemByItenPotent(itemPotent);
+        if(Objects.nonNull(userBackpack)){
+            return;
+        }
+        // 发放物品
+        UserBackpack insert = UserAdapter.buildSendItemUserBack(uid, itemId, itemPotent);
+        userBackpackMapper.insert(insert);
+    }
+
+    private String getItemPotent(Long itemId, Integer type, String businessId) {
+        return String.format("%d_%d_%s", itemId, type, businessId);
     }
 
     private String getUserTokenKey(Long uid) {
