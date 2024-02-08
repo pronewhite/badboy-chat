@@ -138,6 +138,7 @@ public class WebSocketServiceImpl implements WebSocketService {
         });
     }
 
+
     /**
      *  登录成功后，完成相关操作
      * @param channel

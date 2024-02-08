@@ -56,4 +56,5 @@ public interface WebSocketService {
      * @param id
      */
     void sendMsgToAll(WSBaseResp<WSBlack> resp, Long id);
+
 }

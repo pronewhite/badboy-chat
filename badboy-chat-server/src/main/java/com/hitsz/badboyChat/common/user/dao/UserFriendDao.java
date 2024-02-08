@@ -9,6 +9,8 @@ import com.hitsz.badboyChat.common.user.utils.CursorUtils;
 import org.apache.ibatis.annotations.Mapper;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * @author badboy
  * @version 1.0
@@ -20,5 +22,22 @@ public class UserFriendDao extends ServiceImpl<UserFriendMapper, UserFriend> {
 
     public CursorPageBaseResp<UserFriend> getFriendPage(long uid, CursorPageBaseReq request) {
         return CursorUtils.getCursorPageByMysql(this, request, wrapper -> wrapper.eq(UserFriend::getUid, uid), UserFriend::getId);
+    }
+
+    public UserFriend getFriendById(long uid, Long targetUid) {
+        return lambdaQuery()
+                .eq(UserFriend::getUid, uid)
+                .eq(UserFriend::getFriendUid, targetUid)
+                .one();
+    }
+
+    public List<UserFriend> getUserFriends(long uid, Long friendId) {
+        return lambdaQuery()
+                .eq(UserFriend::getUid, uid)
+                .eq(UserFriend::getFriendUid, friendId)
+                .or()
+                .eq(UserFriend::getFriendUid, uid)
+                .eq(UserFriend::getUid, friendId)
+                .list();
     }
 }

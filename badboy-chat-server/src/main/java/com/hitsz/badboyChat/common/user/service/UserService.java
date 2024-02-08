@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
 * @description 针对表【user(用户表)】的数据库操作Service
 * @createDate 2024-01-20 20:34:09
 */
-public interface UserService extends IService<User> {
+public interface UserService {
 
     /**
      *  用户注册

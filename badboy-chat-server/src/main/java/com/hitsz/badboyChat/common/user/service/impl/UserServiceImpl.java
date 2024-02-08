@@ -26,6 +26,7 @@ import com.hitsz.badboyChat.common.user.service.cache.ItemCache;
 import com.hitsz.badboyChat.common.user.utils.AssertUtil;
 import com.hitsz.badboyChat.common.user.utils.JwtUtils;
 import com.hitsz.badboyChat.common.user.utils.RedisCommonProcessor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.checkerframework.checker.units.qual.A;
 import org.redisson.api.RLock;
@@ -47,8 +48,8 @@ import java.util.stream.Collectors;
  * @createDate 2024-01-20 20:34:09
  */
 @Service
-public class UserServiceImpl extends ServiceImpl<UserMapper, User>
-        implements UserService {
+@Slf4j
+public class UserServiceImpl implements UserService {
 
     public static final long TIME_EXPIRE = 7L;
     @Autowired
@@ -66,8 +67,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     private UserServiceImpl userService;
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
-    @Autowired
-    private UserRoleMapper userRoleMapper;
     @Autowired
     private BlackMapper blackMapper;
 

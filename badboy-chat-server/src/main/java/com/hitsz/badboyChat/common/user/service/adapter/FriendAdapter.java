@@ -1,6 +1,12 @@
 package com.hitsz.badboyChat.common.user.service.adapter;
 
+import com.hitsz.badboyChat.common.enums.*;
+import com.hitsz.badboyChat.common.user.domain.entity.Room;
+import com.hitsz.badboyChat.common.user.domain.entity.RoomFriend;
 import com.hitsz.badboyChat.common.user.domain.entity.User;
+import com.hitsz.badboyChat.common.user.domain.entity.UserApply;
+import com.hitsz.badboyChat.common.user.domain.vo.req.FriendApplyReq;
+import com.hitsz.badboyChat.common.user.domain.vo.resp.FriendApplyResp;
 import com.hitsz.badboyChat.common.user.domain.vo.resp.FriendResp;
 
 import java.util.ArrayList;
@@ -28,6 +34,50 @@ public class FriendAdapter {
             friendResp.setActiveStatus(user.getActiveStatus());
             friendResp.setAvatar(user.getAvatar());
             return friendResp;
+        }).collect(Collectors.toList());
+    }
+
+    public static UserApply buildFriendApply(long uid, FriendApplyReq friendApplyReq) {
+        return UserApply.builder()
+                .uid(uid)
+                .targetId(friendApplyReq.getTargetUid())
+                .msg(friendApplyReq.getMsg())
+                .status(ApplyStatusEnum.WAIT_PROCESS.getCode())
+                .type(ApplyTypeEnum.FRIEND.getCode())
+                .readStatus(ApplyReadStatusEnum.NOT_READ.getCode())
+                .build();
+    }
+
+    public static String generateRoomKey(List<Long> roomFriendsUids) {
+        return roomFriendsUids.stream().sorted().map(String::valueOf).collect(Collectors.joining("_"));
+    }
+
+    public static Room buildInserRoom() {
+        return Room.builder()
+                .type(RoomTypeEnum.SINGLE_CHAT.getCode())
+                .hotFlag(RoomHotFlagEnum.NO.getCode())
+                .build();
+    }
+
+    public static RoomFriend buildRoomFriend(Long id, List<Long> roomFriendsUids,String roomKey) {
+        return RoomFriend.builder()
+                .roomId(id)
+                .roomKey(roomKey)
+                .uid1(roomFriendsUids.get(0))
+                .uid2(roomFriendsUids.get(1))
+                .status(RoomStatusEnum.NORMAL.getCode())
+                .build();
+    }
+
+    public static List<FriendApplyResp> buildFriendApplyPage(List<UserApply> records) {
+        return records.stream().map(userApply -> {
+            FriendApplyResp friendApplyResp = new FriendApplyResp();
+            friendApplyResp.setApplyId(userApply.getId());
+            friendApplyResp.setType(userApply.getType());
+            friendApplyResp.setMsg(userApply.getMsg());
+            friendApplyResp.setStatus(userApply.getStatus());
+            friendApplyResp.setUid(userApply.getUid());
+            return friendApplyResp;
         }).collect(Collectors.toList());
     }
 }
