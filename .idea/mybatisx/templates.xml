@@ -68,12 +68,8 @@
             <option name="tableUIInfoList">
               <list>
                 <TableUIInfo>
-                  <option name="className" value="UserApply" />
-                  <option name="tableName" value="user_apply" />
-                </TableUIInfo>
-                <TableUIInfo>
-                  <option name="className" value="UserFriend" />
-                  <option name="tableName" value="user_friend" />
+                  <option name="className" value="SecureInvokeRecord" />
+                  <option name="tableName" value="secure_invoke_record" />
                 </TableUIInfo>
               </list>
             </option>

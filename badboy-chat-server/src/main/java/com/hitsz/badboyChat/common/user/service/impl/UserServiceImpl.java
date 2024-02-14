@@ -15,14 +15,18 @@ import com.hitsz.badboyChat.common.user.domain.entity.ItemConfig;
 import com.hitsz.badboyChat.common.user.domain.entity.User;
 import com.hitsz.badboyChat.common.user.domain.entity.UserBackpack;
 import com.hitsz.badboyChat.common.user.domain.vo.req.BlackUserReq;
+import com.hitsz.badboyChat.common.user.domain.vo.req.SummeryInfoReq;
 import com.hitsz.badboyChat.common.user.domain.vo.req.WearBadgeReq;
 import com.hitsz.badboyChat.common.user.domain.vo.resp.BadgeResp;
+import com.hitsz.badboyChat.common.user.domain.vo.resp.SummeryInfoResp;
 import com.hitsz.badboyChat.common.user.domain.vo.resp.UserInfoResp;
 import com.hitsz.badboyChat.common.user.mapper.*;
 import com.hitsz.badboyChat.common.user.service.UserBackpackService;
 import com.hitsz.badboyChat.common.user.service.UserService;
 import com.hitsz.badboyChat.common.user.service.adapter.UserAdapter;
 import com.hitsz.badboyChat.common.user.service.cache.ItemCache;
+import com.hitsz.badboyChat.common.user.service.cache.UserCache;
+import com.hitsz.badboyChat.common.user.service.cache.UserSummeryCache;
 import com.hitsz.badboyChat.common.user.utils.AssertUtil;
 import com.hitsz.badboyChat.common.user.utils.JwtUtils;
 import com.hitsz.badboyChat.common.user.utils.RedisCommonProcessor;
@@ -37,7 +41,9 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -63,12 +69,16 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private ItemCache itemCache;
     @Autowired
+    private UserCache userCache;
+    @Autowired
     @Lazy
     private UserServiceImpl userService;
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
     @Autowired
     private BlackMapper blackMapper;
+    @Autowired
+    private UserSummeryCache userSummeryCache;
 
 
     @Override
@@ -185,6 +195,34 @@ public class UserServiceImpl implements UserService {
         blackIp(blackUserInfo.getIpInfo().getCreateIp());
         blackIp(blackUserInfo.getIpInfo().getUpdateIp());
         applicationEventPublisher.publishEvent(new UserBlackEvent(this,blackUserInfo));
+    }
+
+    @Override
+    public List<SummeryInfoResp> getSummeryInfo(SummeryInfoReq req) {
+        List<Long> needSyncUidList = getNeedSyncUidList(req.getReqList());
+        // 找出需要刷新信息的用户ID后，直接将信息查出并返回
+        Map<Long, SummeryInfoResp> batch = userSummeryCache.getBatch(needSyncUidList);
+        // 最后组装一下，如果用户信息是已经刷新的，那么需要返回最新信息，否则直接返回uid即可
+        return req.getReqList().stream()
+                .map(info -> batch.containsKey(info.getUid()) ? batch.get(info.getUid()) : SummeryInfoResp.skip(info.getUid()))
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
+
+    private List<Long> getNeedSyncUidList(List<SummeryInfoReq.Info> reqList) {
+        List<Long> uids = reqList.stream().map(SummeryInfoReq.Info::getUid).collect(Collectors.toList());
+        // 从缓存中取出对应uid的modifytime
+        List<Long> modifyTimeList = userCache.getModifyTimeByUidList(uids);
+        // 根据lastModifytime找出需要刷新信息的用户id
+        List<Long> needSyncUidList = new ArrayList<>();
+        for(int i = 0; i < reqList.size(); i++){
+            SummeryInfoReq.Info info = reqList.get(i);
+            Long modifytime = modifyTimeList.get(i);
+            if(Objects.isNull(info.getLastModifytime()) || (Objects.nonNull(modifytime) && modifytime > info.getLastModifytime() )){
+                needSyncUidList.add(info.getUid());
+            }
+        }
+        return needSyncUidList;
     }
 
     private void blackIp(String ip) {

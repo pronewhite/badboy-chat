@@ -1,6 +1,8 @@
 package com.hitsz.badboyChat.common.user.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.hitsz.badboyChat.common.enums.RoomHotFlagEnum;
+import com.hitsz.badboyChat.common.enums.RoomTypeEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -76,4 +78,16 @@ public class Room implements Serializable {
 
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
+
+    public boolean isHotRoom(){
+        return RoomHotFlagEnum.of(this.hotFlag) == RoomHotFlagEnum.YES;
+    }
+
+    public boolean isRoomFriend(){
+        return RoomTypeEnum.of(this.type) == RoomTypeEnum.SINGLE_CHAT;
+    }
+
+    public boolean isRoomGroup(){
+        return RoomTypeEnum.of(this.type)== RoomTypeEnum.GROUP_CHAT;
+    }
 }

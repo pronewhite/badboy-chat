@@ -1,16 +1,30 @@
 package com.hitsz.badboyChat.common.user.utils;
 
+import cn.hutool.json.JSONUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Component
 public class RedisCommonProcessor {
 
     @Autowired
-    private RedisTemplate redisTemplate;
+    private static RedisTemplate redisTemplate;
+
+    public static <T> void mset(Map<String,T> loadMap, Long expireSeconds) {
+        redisTemplate.opsForValue().multiSet(loadMap);
+        loadMap.forEach((key, value)-> {
+            expire(key, expireSeconds);
+        });
+    }
+
+    public static void del(List<String> keys) {
+        redisTemplate.delete(keys);
+    }
 
     // 通过key获取value
     public Object get(String key){
@@ -65,7 +79,29 @@ public class RedisCommonProcessor {
      * @param time
      * @param unit
      */
-    public void expire(String key, Long time, TimeUnit unit){
+    public static void expire(String key, Long time, TimeUnit unit){
         redisTemplate.expire(key, time, unit);
+    }
+
+    /**
+     * 给key设置过期时间
+     * @param key
+     * @param time
+     */
+    public static void expire(String key, Long time){
+        redisTemplate.expire(key, time, TimeUnit.SECONDS);
+    }
+
+    // 根据key批量获取值
+    public static <T> List<T> mget(Collection<String> keys, Class<T> tClass){
+        List<String> list = redisTemplate.opsForValue().multiGet(keys);
+        if(Objects.isNull(list)){
+            return new ArrayList<>();
+        }
+        return list.stream().map(o -> toBeanOrNull(o, tClass)).collect(Collectors.toList());
+    }
+
+    static <T> T toBeanOrNull(String o, Class<T> tClass) {
+        return o == null ? null : JSONUtil.toBean(o, tClass);
     }
 }

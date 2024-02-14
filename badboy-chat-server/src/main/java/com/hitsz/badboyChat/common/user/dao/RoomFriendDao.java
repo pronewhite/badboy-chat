@@ -35,5 +35,13 @@ public class RoomFriendDao extends ServiceImpl<RoomFriendMapper, RoomFriend>{
                 .set(RoomFriend::getStatus, RoomStatusEnum.ABNORMAL.getCode())
                 .update();
     }
+
+    public RoomFriend getByRoomId(Long roomId) {
+        return lambdaQuery()
+                .eq(RoomFriend::getRoomId, roomId)
+                .eq(RoomFriend::getStatus, YesOrNoEnum.NO.getCode())
+                .eq(RoomFriend::getIsDeleted, Boolean.FALSE)
+                .one();
+    }
 }
 

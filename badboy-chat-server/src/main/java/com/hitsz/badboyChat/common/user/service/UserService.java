@@ -4,8 +4,10 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.hitsz.badboyChat.common.enums.IdempotentEnum;
 import com.hitsz.badboyChat.common.user.domain.entity.User;
 import com.hitsz.badboyChat.common.user.domain.vo.req.BlackUserReq;
+import com.hitsz.badboyChat.common.user.domain.vo.req.SummeryInfoReq;
 import com.hitsz.badboyChat.common.user.domain.vo.req.WearBadgeReq;
 import com.hitsz.badboyChat.common.user.domain.vo.resp.BadgeResp;
+import com.hitsz.badboyChat.common.user.domain.vo.resp.SummeryInfoResp;
 import com.hitsz.badboyChat.common.user.domain.vo.resp.UserInfoResp;
 
 import java.util.List;
@@ -59,4 +61,11 @@ public interface UserService {
      * @param blackUserReq 拉黑信息
      */
     void blackUser(BlackUserReq blackUserReq);
+
+    /**
+     * 批量获取用户信息
+     * @param req
+     * @return
+     */
+    List<SummeryInfoResp> getSummeryInfo(SummeryInfoReq req);
 }

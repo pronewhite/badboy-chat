@@ -4,8 +4,10 @@ import com.hitsz.badboyChat.common.domain.vo.resp.ApiResult;
 import com.hitsz.badboyChat.common.enums.RoleTypeEnum;
 import com.hitsz.badboyChat.common.user.domain.vo.req.BlackUserReq;
 import com.hitsz.badboyChat.common.user.domain.vo.req.ModifyName;
+import com.hitsz.badboyChat.common.user.domain.vo.req.SummeryInfoReq;
 import com.hitsz.badboyChat.common.user.domain.vo.req.WearBadgeReq;
 import com.hitsz.badboyChat.common.user.domain.vo.resp.BadgeResp;
+import com.hitsz.badboyChat.common.user.domain.vo.resp.SummeryInfoResp;
 import com.hitsz.badboyChat.common.user.domain.vo.resp.UserInfoResp;
 import com.hitsz.badboyChat.common.user.service.RoleService;
 import com.hitsz.badboyChat.common.user.service.UserService;
@@ -71,6 +73,12 @@ public class UserController {
         AssertUtil.isTrue(hasPower,"权限不足");
         userService.blackUser(blackUserReq);
         return ApiResult.success();
+    }
+
+    @PostMapping("/info")
+    @ApiOperation(value = "获取用户信息")
+    public ApiResult<List<SummeryInfoResp>> getUserInfo(@Valid @RequestBody SummeryInfoReq req){
+        return ApiResult.success(userService.getSummeryInfo(req));
     }
 
 }

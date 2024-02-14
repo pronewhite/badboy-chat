@@ -1,12 +1,14 @@
 package com.hitsz.badboyChat.common.user.service.cache;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.hitsz.badboyChat.common.constant.RedisKey;
 import com.hitsz.badboyChat.common.user.domain.entity.Black;
 import com.hitsz.badboyChat.common.user.domain.entity.ItemConfig;
 import com.hitsz.badboyChat.common.user.domain.entity.UserRole;
 import com.hitsz.badboyChat.common.user.mapper.BlackMapper;
 import com.hitsz.badboyChat.common.user.mapper.ItemConfigMapper;
 import com.hitsz.badboyChat.common.user.mapper.UserRoleMapper;
+import com.hitsz.badboyChat.common.user.utils.RedisCommonProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
@@ -29,6 +31,8 @@ public class UserCache {
     private UserRoleMapper userRoleMapper;
     @Autowired
     private BlackMapper blackMapper;
+    @Autowired
+    private RedisCommonProcessor redisCommonProcessor;
 
     @Cacheable(value = "userCache", key = "'role'+#uid")
     public Set<Long> getUserRole(Long uid){
@@ -50,5 +54,10 @@ public class UserCache {
             result.put(entry.getKey(), entry.getValue().stream().map(Black::getTarget).collect(Collectors.toSet()));
         }
         return result;
+    }
+
+    public List<Long> getModifyTimeByUidList(List<Long> uids) {
+        List<String> redisKeys = uids.stream().map(uid -> RedisKey.getKey(RedisKey.USRE_MODIFY_KEY,uid)).collect(Collectors.toList());
+        return redisCommonProcessor.mget(redisKeys, Long.class);
     }
 }

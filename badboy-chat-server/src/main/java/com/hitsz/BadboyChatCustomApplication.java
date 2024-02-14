@@ -10,10 +10,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication(scanBasePackages = {"com.hitsz"})
 @MapperScan({"com/hitsz/badboyChat/common/user/mapper/**"})
-public class MallchatCustomApplication {
+public class BadboyChatCustomApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(MallchatCustomApplication.class,args);
+        SpringApplication.run(BadboyChatCustomApplication.class,args);
     }
 
 }

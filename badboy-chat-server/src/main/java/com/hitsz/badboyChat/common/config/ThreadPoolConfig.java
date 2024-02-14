@@ -2,6 +2,7 @@ package com.hitsz.badboyChat.common.config;
 
 
 import com.hitsz.badboyChat.common.thread.MyThreadFactory;
+import com.hitsz.badboychat.transaction.annotation.SecureInvokeConfigurer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -14,11 +15,17 @@ import java.util.concurrent.ThreadPoolExecutor;
 
 @Configuration
 @EnableAsync
-public class ThreadPoolConfig implements AsyncConfigurer {
+public class ThreadPoolConfig implements AsyncConfigurer, SecureInvokeConfigurer {
+    @Override
+    public Executor getSecureInvokeExecutor() {
+        return badboychatExecutor();
+    }
+
     /**
      * 项目共用线程池
      */
     public static final String BADBOYCHAT_EXECUTOR = "badboychatExecutor";
+
     /**
      * websocket通信线程池
      */

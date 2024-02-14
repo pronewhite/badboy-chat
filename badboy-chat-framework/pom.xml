@@ -13,6 +13,7 @@
     <packaging>pom</packaging>
     <modules>
         <module>badboy-chat-common-starter</module>
+        <module>badboychat-transaction</module>
     </modules>
 
     <dependencies>

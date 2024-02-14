@@ -2,12 +2,15 @@ package com.hitsz.badboychat;
 
 import com.hitsz.badboyChat.common.user.utils.JwtUtils;
 import com.hitsz.badboyChat.common.user.utils.RedisCommonProcessor;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -32,6 +35,14 @@ public class SelfTest {
 
     @Autowired
     private ThreadPoolTaskExecutor threadPoolTaskExecutor;
+
+    @Autowired
+    private RocketMQTemplate rocketMQTemplate;
+    @Test
+    public void sendMQ() {
+        Message<String> build = MessageBuilder.withPayload("123").build();
+        rocketMQTemplate.send("test-topic", build);
+    }
 
     @Test
     public void testJwt(){

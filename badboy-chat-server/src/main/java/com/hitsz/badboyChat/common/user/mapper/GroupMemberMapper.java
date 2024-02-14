@@ -2,6 +2,7 @@ package com.hitsz.badboyChat.common.user.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.hitsz.badboyChat.common.user.domain.entity.GroupMember;
+import org.apache.ibatis.annotations.Mapper;
 
 /**
 * @author lenovo
@@ -9,6 +10,7 @@ import com.hitsz.badboyChat.common.user.domain.entity.GroupMember;
 * @createDate 2024-02-07 13:26:12
 * @Entity .domain.GroupMember
 */
+@Mapper
 public interface GroupMemberMapper extends BaseMapper<GroupMember> {
 
 }

@@ -1,6 +1,8 @@
 package com.hitsz.badboyChat.common.user.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -12,6 +14,8 @@ import java.util.Date;
  */
 @TableName(value ="message")
 @Data
+@Builder
+@AllArgsConstructor
 public class Message implements Serializable {
     /**
      * id
