@@ -71,4 +71,6 @@ public abstract class AbstractMsgHandler<Req> {
         }
         return BeanUtil.toBean(msgContent,bodyClass);
     }
+
+    public abstract Object showMsg(Message message) ;
 }

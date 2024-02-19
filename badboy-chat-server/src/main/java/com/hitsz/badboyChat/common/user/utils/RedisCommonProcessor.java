@@ -26,6 +26,11 @@ public class RedisCommonProcessor {
         redisTemplate.delete(keys);
     }
 
+    public static Boolean zAdd(String key, Long value, long time) {
+        return redisTemplate.opsForZSet().add(key,value, time);
+    }
+
+
     // 通过key获取value
     public Object get(String key){
         if(key == null){

@@ -12,6 +12,7 @@ public class NettyUtils {
 
     public static final AttributeKey<String> TOKEN = AttributeKey.valueOf("token");
     public static final AttributeKey<String> IP = AttributeKey.valueOf("ip");
+    public static final AttributeKey<Long> UID = AttributeKey.valueOf("uid");
 
     // 向netty的channel中写数据
     public static <T> void setAttr(Channel channel, AttributeKey<T> key, T value){

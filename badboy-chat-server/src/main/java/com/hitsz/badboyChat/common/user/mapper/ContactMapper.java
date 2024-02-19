@@ -2,6 +2,10 @@ package com.hitsz.badboyChat.common.user.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.hitsz.badboyChat.common.user.domain.entity.Contact;
+import org.apache.ibatis.annotations.Param;
+
+import java.util.Date;
+import java.util.List;
 
 /**
 * @author lenovo
@@ -11,6 +15,7 @@ import com.hitsz.badboyChat.common.user.domain.entity.Contact;
 */
 public interface ContactMapper extends BaseMapper<Contact> {
 
+    void refreshOrCreateActiveTime(@Param("roomId") Long roomId, @Param("memberList") List<Long> memberList, @Param("msgId") Long msgId, @Param("activeTime") Date activeTime);
 }
 
 

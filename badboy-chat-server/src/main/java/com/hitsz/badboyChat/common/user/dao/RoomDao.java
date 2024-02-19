@@ -7,6 +7,8 @@ import com.hitsz.badboyChat.common.user.domain.entity.Room;
 import com.hitsz.badboyChat.common.user.mapper.RoomMapper;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
+
 /**
  * @author badboy
  * @version 1.0
@@ -16,4 +18,11 @@ import org.springframework.stereotype.Service;
 public class RoomDao extends ServiceImpl<RoomMapper, Room>{
 
 
+    public void refreshRoomMessage(Long roomId, Long msgId, Date createTime) {
+        lambdaUpdate()
+                .eq(Room::getId, roomId)
+                .set(Room::getLastMsgId, msgId)
+                .set(Room::getActiveTime, createTime)
+                .update();
+    }
 }

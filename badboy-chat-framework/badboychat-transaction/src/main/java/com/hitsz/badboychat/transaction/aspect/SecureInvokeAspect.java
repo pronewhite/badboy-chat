@@ -6,6 +6,7 @@ import com.hitsz.badboychat.transaction.annotation.SecureInvoke;
 import com.hitsz.badboychat.transaction.dao.SecureInvokeRecordDao;
 import com.hitsz.badboychat.transaction.domain.dto.SecureInvokeDTO;
 import com.hitsz.badboychat.transaction.domain.entity.SecureInvokeRecord;
+import com.hitsz.badboychat.transaction.service.SecureInvokeHolder;
 import com.hitsz.badboychat.transaction.service.SecureInvokeService;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -41,7 +42,8 @@ public class SecureInvokeAspect {
     public Object around(ProceedingJoinPoint joinPoint, SecureInvoke secureInvoke) throws Throwable{
         boolean async = secureInvoke.async();
         boolean inTransaction = TransactionSynchronizationManager.isActualTransactionActive();
-        if(!inTransaction){
+
+        if(SecureInvokeHolder.isInvoking() || !inTransaction){
             return joinPoint.proceed();
         }
         // 取出标有secureInvoke注解的方法的Method对象

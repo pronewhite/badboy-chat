@@ -1,11 +1,16 @@
 package com.hitsz.badboyChat.common.websocket.service.adapter;
 
+import cn.hutool.core.bean.BeanUtil;
+import com.hitsz.badboyChat.common.chat.domain.dto.ChatMsgRecallDTO;
+import com.hitsz.badboyChat.common.chat.domain.dto.MsgRecall;
+import com.hitsz.badboyChat.common.chat.domain.vo.resp.ChatMessageResp;
 import com.hitsz.badboyChat.common.enums.YesOrNoEnum;
 import com.hitsz.badboyChat.common.user.domain.entity.User;
 import com.hitsz.badboyChat.common.websocket.domain.enums.WSRespTypeEnum;
 import com.hitsz.badboyChat.common.websocket.domain.vo.resp.WSBaseResp;
 import com.hitsz.badboyChat.common.websocket.domain.vo.resp.WSLoginSuccess;
 import com.hitsz.badboyChat.common.websocket.domain.vo.resp.WSLoginUrl;
+import com.hitsz.badboyChat.common.websocket.domain.vo.resp.WSMsgRecall;
 import me.chanjar.weixin.mp.bean.result.WxMpQrCodeTicket;
 
 /**
@@ -46,6 +51,22 @@ public class WebSocketAdapter {
     public static WSBaseResp<?> buildInvalidTokenResp() {
         WSBaseResp<WSLoginSuccess> resp = new WSBaseResp<>();
         resp.setType(WSRespTypeEnum.INVALIDATE_TOKEN.getType());
+        return resp;
+    }
+
+    public static WSBaseResp<?> buildPushMsg(ChatMessageResp chatMessageResp) {
+        WSBaseResp<ChatMessageResp> resp = new WSBaseResp<>();
+        resp.setData(chatMessageResp);
+        resp.setType(WSRespTypeEnum.MEMBER_CHANGE.getType());
+        return resp;
+    }
+
+    public static WSBaseResp<?> buildMsgRecall(ChatMsgRecallDTO chatMsgRecallDTO) {
+        WSBaseResp<WSMsgRecall> resp = new WSBaseResp<>();
+        resp.setType(WSRespTypeEnum.RECALL.getType());
+        WSMsgRecall msgRecall = new WSMsgRecall();
+        BeanUtil.copyProperties(chatMsgRecallDTO, msgRecall);
+        resp.setData(msgRecall);
         return resp;
     }
 }

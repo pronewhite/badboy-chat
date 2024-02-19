@@ -5,6 +5,9 @@ import com.hitsz.badboyChat.common.user.domain.entity.GroupMember;
 import com.hitsz.badboyChat.common.user.mapper.GroupMemberMapper;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 /**
  * @author badboy
  * @version 1.0
@@ -19,5 +22,13 @@ public class GroupMemBerDao extends ServiceImpl<GroupMemberMapper, GroupMember>{
                 .eq(GroupMember::getUid, uid)
                 .eq(GroupMember::getIsDeleted, Boolean.FALSE)
                 .one();
+    }
+
+    public List<Long> getGroupMembersUid(Long id) {
+        List<GroupMember> groupMembers = lambdaQuery()
+                .eq(GroupMember::getGroupId, id)
+                .select(GroupMember::getUid)
+                .list();
+        return groupMembers.stream().map(GroupMember::getUid).collect(Collectors.toList());
     }
 }

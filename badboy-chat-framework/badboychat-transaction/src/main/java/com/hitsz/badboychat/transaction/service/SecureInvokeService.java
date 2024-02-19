@@ -10,12 +10,9 @@ import com.hitsz.badboychat.transaction.domain.dto.SecureInvokeDTO;
 import com.hitsz.badboychat.transaction.domain.entity.SecureInvokeRecord;
 import com.hitsz.badboychat.transaction.domain.enums.SecureInvokeRecordStatusEnum;
 import com.hitsz.badboychat.transaction.utils.JsonUtils;
-import io.github.classgraph.json.JSONUtils;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -30,7 +27,6 @@ import java.util.stream.Collectors;
  * @version 1.0
  * Create by 2024/2/14 21:14
  */
-@Service
 @Slf4j
 @AllArgsConstructor
 public class SecureInvokeService {
@@ -73,6 +69,7 @@ public class SecureInvokeService {
         SecureInvokeDTO secureInvokeDTO = secureInvokeRecord.getSecureInvokeDTO();
         // 反射调用方法
         try {
+            SecureInvokeHolder.setInvoke();
             Class<?> className = Class.forName(secureInvokeDTO.getClassName());
             Object bean = SpringUtil.getBean(className);
             List<String> parameterTypes = JSONUtil.toList(secureInvokeDTO.getParametersType(), String.class);
@@ -89,6 +86,8 @@ public class SecureInvokeService {
             log.error("invoke method error", e);
             // 重试
             retryInvoke(secureInvokeRecord, e.getMessage());
+        }finally {
+            SecureInvokeHolder.invoked();
         }
     }
 

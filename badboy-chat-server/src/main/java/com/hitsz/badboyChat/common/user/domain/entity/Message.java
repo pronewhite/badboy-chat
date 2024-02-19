@@ -1,6 +1,7 @@
 package com.hitsz.badboyChat.common.user.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.hitsz.badboyChat.common.chat.domain.entity.msg.MessageExtra;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -68,8 +69,8 @@ public class Message implements Serializable {
     /**
      * 扩展信息
      */
-    @TableField(value = "extra")
-    private Object extra;
+    @TableField(value = "extra",typeHandler = com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler.class)
+    private MessageExtra extra;
 
     /**
      * 是否删除 0未删除 1已删除

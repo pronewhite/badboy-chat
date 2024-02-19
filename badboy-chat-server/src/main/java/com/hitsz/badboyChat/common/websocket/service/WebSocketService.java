@@ -1,5 +1,6 @@
 package com.hitsz.badboyChat.common.websocket.service;
 
+import com.hitsz.badboyChat.common.chat.domain.dto.PushMsgDTO;
 import com.hitsz.badboyChat.common.websocket.domain.vo.resp.WSBaseResp;
 import com.hitsz.badboyChat.common.websocket.domain.vo.resp.WSBlack;
 import io.netty.channel.Channel;
@@ -57,4 +58,12 @@ public interface WebSocketService {
      */
     void sendMsgToAll(WSBaseResp<WSBlack> resp, Long id);
 
+    /**
+     * 给指定的用户推送消息
+     * @param uid
+     * @param pushMsgDTO
+     */
+    void pushToUser(Long uid,WSBaseResp<?> wsBaseResp);
+
+    void pushToAllOnline(WSBaseResp<?> wsBaseResp, Long skipUid);
 }

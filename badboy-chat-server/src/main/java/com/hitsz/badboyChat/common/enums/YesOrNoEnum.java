@@ -17,4 +17,8 @@ public enum YesOrNoEnum {
 
     private Integer code;
     private String desc;
+
+    public static Integer getStatus(boolean condition) {
+        return condition ? YES.getCode() : NO.getCode();
+    }
 }

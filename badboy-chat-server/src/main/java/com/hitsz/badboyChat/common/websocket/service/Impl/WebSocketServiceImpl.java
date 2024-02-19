@@ -4,6 +4,7 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.hitsz.badboyChat.common.chat.domain.dto.PushMsgDTO;
 import com.hitsz.badboyChat.common.config.ThreadPoolConfig;
 import com.hitsz.badboyChat.common.enums.RoleTypeEnum;
 import com.hitsz.badboyChat.common.event.UserOnlineEvent;
@@ -32,6 +33,7 @@ import java.time.Duration;
 import java.util.Date;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
@@ -46,6 +48,12 @@ public class WebSocketServiceImpl implements WebSocketService {
      * 保存用户与ws通道的映射关系（包括登录用户与未登录用户）
      */
     private static final ConcurrentHashMap<Channel, WSChannelUserDTO> ON_LINE_WS_MAP = new ConcurrentHashMap<>();
+
+    /**
+     * 记录用户与socket的关系
+     */
+    private static final ConcurrentHashMap<Long, CopyOnWriteArrayList<Channel>> ONLINE_UID_MAP = new ConcurrentHashMap<>();
+
 
     public static final int MAXIMUM_SIZE = 1000;
     public static final int HOURS = 1;
@@ -138,6 +146,26 @@ public class WebSocketServiceImpl implements WebSocketService {
         });
     }
 
+    @Override
+    public void pushToUser(Long uid, WSBaseResp<?> wsBaseResp) {
+        CopyOnWriteArrayList<Channel> channels = ONLINE_UID_MAP.get(uid);
+        channels.forEach(channel -> {
+            threadPoolTaskExecutor.execute(() -> {
+                sendMsg(channel, wsBaseResp);
+            });
+        });
+    }
+
+    @Override
+    public void pushToAllOnline(WSBaseResp<?> wsBaseResp, Long skipUid) {
+        ON_LINE_WS_MAP.forEach((channel, etx)-> {
+            if(Objects.nonNull(skipUid) && skipUid.equals(etx.getUid())){
+                return;
+            }
+            threadPoolTaskExecutor.execute(() -> sendMsg(channel, wsBaseResp));
+        });
+    }
+
 
     /**
      *  登录成功后，完成相关操作
@@ -146,8 +174,8 @@ public class WebSocketServiceImpl implements WebSocketService {
      * @param token
      */
     private void loginSucess(Channel channel, User user,String token) {
-        WSChannelUserDTO wsChannelUserDTO = ON_LINE_WS_MAP.get(channel);
-        wsChannelUserDTO.setUid(String.valueOf(user.getId()));
+        onLine(channel, user.getId());
+
         // 推送登录成功消息
         boolean hasPower = roleService.hasPower(user.getId(), RoleTypeEnum.ADMIN);
         sendMsg(channel, WebSocketAdapter.buildLoginSuccessResp(user,token,hasPower));
@@ -155,6 +183,14 @@ public class WebSocketServiceImpl implements WebSocketService {
         user.setLastOptTime(new Date());
         user.refreshIp(NettyUtils.getAttr(channel, NettyUtils.IP));
         applicationEventPublisher.publishEvent(new UserOnlineEvent(this, user));
+    }
+
+    private void onLine(Channel channel, Long uid) {
+        WSChannelUserDTO wsChannelUserDTO = ON_LINE_WS_MAP.get(channel);
+        wsChannelUserDTO.setUid(String.valueOf(uid));
+        ONLINE_UID_MAP.putIfAbsent(uid, new CopyOnWriteArrayList<>());
+        ONLINE_UID_MAP.get(uid).add(channel);
+        NettyUtils.setAttr(channel, NettyUtils.UID, uid);
     }
 
     /**
