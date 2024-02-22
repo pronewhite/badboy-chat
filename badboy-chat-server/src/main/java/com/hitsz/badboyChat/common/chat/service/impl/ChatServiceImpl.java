@@ -31,6 +31,7 @@ import com.hitsz.badboyChat.common.user.utils.AssertUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -67,13 +68,15 @@ public class ChatServiceImpl implements ChatService {
     private ApplicationEventPublisher applicationEventPublisher;
 
     @Override
-    public void chat(Long uid, ChatMessageReq req) {
+    @Transactional(rollbackFor = Exception.class)
+    public Long chat(Long uid, ChatMessageReq req) {
         checkMsgValid(req, uid);
         AbstractMsgHandler msgHandler = MsgHandlerFactory.getStrategyOrNull(req.getMsgType());
         AssertUtil.isNotEmpty(msgHandler, CommonErrorEnum.PARAM_INVALID);
         Long msgId = msgHandler.checkAndSaveMsg(req, uid);
         // 推送发送消息的事件
         applicationEventPublisher.publishEvent(new MessageSendEvent(this,msgId));
+        return msgId;
     }
 
     @Override
@@ -100,6 +103,12 @@ public class ChatServiceImpl implements ChatService {
         checkCallBackMsgValid(message, uid);
         // 消息撤回
         recallMsgHandler.recallMsg(message, uid);
+    }
+
+    @Override
+    public ChatMessageResp getMsgResp(Long msgId, Long uid) {
+        Message message = messageDao.getById(msgId);
+        return getChatResp(message, uid);
     }
 
     private void checkCallBackMsgValid(Message message, Long uid) {

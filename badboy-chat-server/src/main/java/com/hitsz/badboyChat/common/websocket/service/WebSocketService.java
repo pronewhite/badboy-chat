@@ -61,7 +61,6 @@ public interface WebSocketService {
     /**
      * 给指定的用户推送消息
      * @param uid
-     * @param pushMsgDTO
      */
     void pushToUser(Long uid,WSBaseResp<?> wsBaseResp);
 

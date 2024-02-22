@@ -25,7 +25,7 @@ public class PushConsumer implements RocketMQListener<PushMsgDTO> {
 
     @Override
     public void onMessage(PushMsgDTO pushMsgDTO) {
-        // 判断消息类型
+        // 判断消息推送类型（全员推送还是个人推送）
         WSPushTypeEnum pushType = WSPushTypeEnum.of(pushMsgDTO.getPushType());
         switch (pushType) {
             case PERSONAL:

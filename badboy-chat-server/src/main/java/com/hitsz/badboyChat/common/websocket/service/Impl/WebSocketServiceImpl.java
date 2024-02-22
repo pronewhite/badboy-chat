@@ -4,7 +4,6 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.json.JSONUtil;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
-import com.hitsz.badboyChat.common.chat.domain.dto.PushMsgDTO;
 import com.hitsz.badboyChat.common.config.ThreadPoolConfig;
 import com.hitsz.badboyChat.common.enums.RoleTypeEnum;
 import com.hitsz.badboyChat.common.event.UserOnlineEvent;

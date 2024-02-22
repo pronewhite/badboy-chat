@@ -1,5 +1,6 @@
 package com.hitsz.badboyChat.common.chat.domain.dto;
 
+import com.hitsz.badboyChat.common.chat.enums.WSPushTypeEnum;
 import com.hitsz.badboyChat.common.websocket.domain.vo.resp.WSBaseResp;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -38,15 +39,18 @@ public class PushMsgDTO {
 
     public PushMsgDTO(WSBaseResp<?> wsBaseResp) {
         this.wsBaseResp = wsBaseResp;
+        this.pushType = WSPushTypeEnum.GROUP_MEMBER.getCode();
     }
 
     public PushMsgDTO( WSBaseResp<?> wsBaseResp,List<Long> uidList) {
         this.uidList = uidList;
         this.wsBaseResp = wsBaseResp;
+        this.pushType = WSPushTypeEnum.PERSONAL.getCode();
     }
 
     public PushMsgDTO(List<Long> uidList){
         this.uidList = uidList;
+        this.pushType = WSPushTypeEnum.PERSONAL.getCode();
     }
 }
 

@@ -42,6 +42,11 @@ public class RecallMsgHandler extends AbstractMsgHandler<Object>{
         return null;
     }
 
+    @Override
+    protected Object showRespMsg(Message message) {
+        return null;
+    }
+
     public void recallMsg(Message message, Long uid) {
         // 将撤回抽象为一种消息，所以撤回某条消息实质上就是将该消息类型修改为撤回类型
         MessageExtra extra = message.getExtra();

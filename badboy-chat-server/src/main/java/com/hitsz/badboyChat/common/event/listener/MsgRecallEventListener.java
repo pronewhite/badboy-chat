@@ -27,7 +27,7 @@ public class MsgRecallEventListener {
     @EventListener(classes = MsgRecallEvent.class)
     public void evitMsgCache(MsgRecallEvent event){
         ChatMsgRecallDTO chatMsgRecallDTO = event.getChatMsgRecallDTO();
-        // 清除撤回消息的缓存
+        // 清除消息的缓存
         msgCache.evitMsgCache(chatMsgRecallDTO.getMsgId());
     }
 

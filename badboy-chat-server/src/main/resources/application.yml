@@ -62,3 +62,8 @@ rocketmq:
 
 jwt:
   secret: ${badboychat.jwt.secret}
+
+#OSS配置
+oss:
+  endpoint: https://oss-cn-shenzhen.aliyuncs.com
+  bucketName: badboy-chat

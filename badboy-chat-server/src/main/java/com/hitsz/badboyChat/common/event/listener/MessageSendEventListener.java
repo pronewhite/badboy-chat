@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * @author badboy
@@ -25,7 +27,7 @@ public class MessageSendEventListener {
     @Autowired
     private MQProducer mqProducer;
 
-    @EventListener(classes = MessageSendEvent.class)
+    @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT, classes = MessageSendEvent.class, fallbackExecution = true)
     public void msgRoute(MessageSendEvent event){
         Message message = messageDao.getById(event.getMsgId());
         mqProducer.sendSecureMsg(MQConstant.MQ_SEND_MSG_TOPIC, new MsgSendMQDTO(message.getId()), message.getId());

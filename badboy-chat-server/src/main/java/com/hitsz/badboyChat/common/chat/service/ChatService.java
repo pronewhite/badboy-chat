@@ -13,7 +13,7 @@ public interface ChatService {
      * @param uid 发送消息的用户id
      * @param req 发送的消息的信息
      */
-    void chat(Long uid, ChatMessageReq req);
+    Long chat(Long uid, ChatMessageReq req);
 
     /**
      *  获取前端展示的消息信息
@@ -23,7 +23,26 @@ public interface ChatService {
      */
     ChatMessageResp getChatResp(Message message, Long reciveUid);
 
+    /**
+     * 获取消息列表
+     * @param uid
+     * @param req
+     * @return
+     */
     CursorPageBaseResp<ChatMessageResp> getMsgPage(Long uid, GetMessagePageReq req);
 
+    /**
+     * 撤回消息
+     * @param uid
+     * @param req
+     */
     void msgCallback(Long uid, MsgCallbackReq req);
+
+    /**
+     * 获取发送消息的展示详情
+     * @param msgId
+     * @param uid
+     * @return
+     */
+    ChatMessageResp getMsgResp(Long msgId, Long uid);
 }

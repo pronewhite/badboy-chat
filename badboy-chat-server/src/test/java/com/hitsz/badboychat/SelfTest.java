@@ -2,6 +2,7 @@ package com.hitsz.badboychat;
 
 import com.hitsz.badboyChat.common.user.utils.JwtUtils;
 import com.hitsz.badboyChat.common.user.utils.RedisCommonProcessor;
+import com.hitsz.badboyChat.common.utils.sensitiveword.DFAFilter;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -13,6 +14,9 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.test.context.junit4.SpringRunner;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author badboy
@@ -38,6 +42,16 @@ public class SelfTest {
 
     @Autowired
     private RocketMQTemplate rocketMQTemplate;
+
+    @Autowired
+    private DFAFilter dfaFilter;
+
+    @Test
+    public void testDFA(){
+        List<String> sensitiveWords =Arrays.asList("tmd", "nnd","ntmd");
+        dfaFilter.loadSensitiveWord(sensitiveWords);
+        System.out.println(dfaFilter.filter("tm,,d,nn....d"));
+    }
     @Test
     public void sendMQ() {
         Message<String> build = MessageBuilder.withPayload("123").build();
