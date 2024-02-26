@@ -14,6 +14,8 @@ public class RedisKey {
     public static final String USER_SUMMERY_KEY = "userSummery:uid_%d";
     public static final String USER_INFO_KEY = "userInfo:uid_%d";
     public static final String ROOM_INFO_KEY = "roomInfo:roomId_%d";
+    public static final String ONLINE_USER_ZSET = "onlineNumber";
+    public static final String OFFLINE_USER_ZSET = "offlineNumber";
 
     public static String getKey(String key, Object... args) {
         return BASE_KEY + String.format(key, args);

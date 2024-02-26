@@ -1,19 +1,28 @@
 package com.hitsz.badboyChat.common.user.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.hitsz.badboyChat.common.chat.domain.vo.resp.GroupMemberListResp;
+import com.hitsz.badboyChat.common.chat.domain.vo.resp.RoomDetailResp;
+import com.hitsz.badboyChat.common.chat.enums.UserRoomRoleEnum;
+import com.hitsz.badboyChat.common.chat.service.adapter.ChatAdapter;
+import com.hitsz.badboyChat.common.chat.service.dao.GroupMemBerDao;
+import com.hitsz.badboyChat.common.chat.service.dao.RoomGroupDao;
+import com.hitsz.badboyChat.common.domain.vo.resp.ApiResult;
 import com.hitsz.badboyChat.common.user.dao.RoomDao;
 import com.hitsz.badboyChat.common.user.dao.RoomFriendDao;
-import com.hitsz.badboyChat.common.user.domain.entity.Room;
-import com.hitsz.badboyChat.common.user.domain.entity.RoomFriend;
-import com.hitsz.badboyChat.common.user.mapper.RoomMapper;
+import com.hitsz.badboyChat.common.user.dao.UserDao;
+import com.hitsz.badboyChat.common.user.domain.entity.*;
 import com.hitsz.badboyChat.common.user.service.RoomService;
 import com.hitsz.badboyChat.common.user.service.adapter.FriendAdapter;
+import com.hitsz.badboyChat.common.user.service.cache.RoomGroupCache;
+import com.hitsz.badboyChat.common.user.service.cache.UserCache;
+import com.hitsz.badboyChat.common.user.service.cache.UserInfoCache;
 import com.hitsz.badboyChat.common.user.utils.AssertUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -28,6 +37,18 @@ public class RoomServiceImpl implements RoomService {
     private RoomFriendDao roomFriendDao;
     @Autowired
     private RoomDao roomDao;
+    @Autowired
+    private RoomGroupDao roomGroupDao;
+    @Autowired
+    private UserCache userCache;
+    @Autowired
+    private GroupMemBerDao groupMemBerDao;
+    @Autowired
+    private UserDao userDao;
+    @Autowired
+    private UserInfoCache userInfoCache;
+    @Autowired
+    private RoomGroupCache roomGroupCache;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -54,6 +75,56 @@ public class RoomServiceImpl implements RoomService {
         String roomKey = FriendAdapter.generateRoomKey(uids);
         roomFriendDao.disableRoom(roomKey);
     }
+
+    @Override
+    public RoomDetailResp getRoomDetail(Long roomId, Long uid) {
+        RoomGroup roomGroup = roomGroupDao.getRoomGroupByRoomId(roomId);
+        Room room = roomDao.getById(roomId);
+        AssertUtil.isNotEmpty(roomGroup,"房间不存在");
+        Long onlineNumber;
+        if(room.isHotRoom()){
+            onlineNumber = userCache.getOnlineNumber();
+        }else{
+            List<Long> groupMembersUid = groupMemBerDao.getGroupMembersUid(roomId);
+            onlineNumber = userDao.getOnlineMembers(groupMembersUid).longValue();
+        }
+        UserRoomRoleEnum userRoomRoleEnum = getUserRoomRole(roomGroup, uid, room);
+        return RoomDetailResp.builder()
+                .name(roomGroup.getName())
+                .avatar(roomGroup.getAvatar())
+                .role(userRoomRoleEnum.getCode())
+                .onlineNumber(onlineNumber.intValue())
+                .roomId(roomId)
+                .build();
+    }
+
+    @Override
+    public List<GroupMemberListResp> getMemberList(Long roomId) {
+        RoomGroup roomGroup = roomGroupCache.getGroupByRoomId(roomId);
+        Room room = roomDao.getById(roomId);
+        AssertUtil.isNotEmpty(roomGroup, "房间不存在");
+        if(room.isHotRoom()){
+            // 只显示前100个
+            List<User> users = userDao.getMembers();
+            return ChatAdapter.buildGroupMemberListResp(users);
+        }else{
+            List<Long> groupMembersUid = groupMemBerDao.getGroupMembersUid(roomGroup.getId());
+            Map<Long, User> memberInfo = userInfoCache.getBatch(groupMembersUid);
+            return ChatAdapter.buildGroupMemberListResp(memberInfo);
+        }
+    }
+
+    private UserRoomRoleEnum getUserRoomRole(RoomGroup roomGroup, Long uid, Room room) {
+        GroupMember groupMember = Objects.isNull(uid) ? null : groupMemBerDao.getMember(roomGroup.getId(), uid);
+        if(Objects.nonNull(groupMember)){
+            return UserRoomRoleEnum.of(groupMember.getRole());
+        }else if (room.isHotRoom()){
+            return UserRoomRoleEnum.USER;
+        }else{
+            return UserRoomRoleEnum.REMOVED;
+        }
+    }
+
 
     private RoomFriend createFriendRoom(Long id, List<Long> roomFriendsUids, String roomKey) {
         RoomFriend roomFriend = FriendAdapter.buildRoomFriend(id, roomFriendsUids,roomKey);

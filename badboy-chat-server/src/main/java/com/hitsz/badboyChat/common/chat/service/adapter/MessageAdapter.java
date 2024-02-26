@@ -1,12 +1,14 @@
 package com.hitsz.badboyChat.common.chat.service.adapter;
 
 import com.hitsz.badboyChat.common.chat.domain.vo.req.ChatMessageReq;
+import com.hitsz.badboyChat.common.chat.domain.vo.resp.ChatMessageReadResp;
 import com.hitsz.badboyChat.common.chat.domain.vo.resp.ChatMessageResp;
 import com.hitsz.badboyChat.common.chat.enums.MessageStatusEnum;
 import com.hitsz.badboyChat.common.chat.service.factory.MsgHandlerFactory;
 import com.hitsz.badboyChat.common.chat.service.strategy.AbstractMsgHandler;
 import com.hitsz.badboyChat.common.enums.MessageMarkTypeEnum;
 import com.hitsz.badboyChat.common.enums.YesOrNoEnum;
+import com.hitsz.badboyChat.common.user.domain.entity.Contact;
 import com.hitsz.badboyChat.common.user.domain.entity.Message;
 import com.hitsz.badboyChat.common.user.domain.entity.MessageMark;
 
@@ -81,5 +83,14 @@ public class MessageAdapter {
         ChatMessageResp.UserInfo userInfo = new ChatMessageResp.UserInfo();
         userInfo.setUid(fromUid);
         return userInfo;
+    }
+
+    public static List<ChatMessageReadResp> buildMsgReadInfo(List<Contact> list) {
+        return list.stream().map(x -> {
+            ChatMessageReadResp chatMessageReadResp = new ChatMessageReadResp();
+            chatMessageReadResp.setUid(x.getUid());
+            return chatMessageReadResp;
+        }).collect(Collectors.toList());
+
     }
 }

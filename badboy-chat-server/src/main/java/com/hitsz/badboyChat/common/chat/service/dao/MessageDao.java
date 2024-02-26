@@ -11,6 +11,7 @@ import com.hitsz.badboyChat.common.user.mapper.MessageMapper;
 import com.hitsz.badboyChat.common.user.utils.CursorUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -35,5 +36,12 @@ public class MessageDao extends ServiceImpl<MessageMapper, Message>{
                 .gt(Message::getId,id)
                 .le(Message::getId,replyId)
                 .count();
+    }
+
+    public List<Message> getMsgs(Long uid, List<Long> msgIds) {
+        return lambdaQuery()
+                .eq(Message::getFromUid,uid)
+                .in(Message::getId,msgIds)
+                .list();
     }
 }

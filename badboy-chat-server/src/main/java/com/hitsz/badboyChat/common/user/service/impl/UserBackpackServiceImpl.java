@@ -12,8 +12,7 @@ import org.springframework.stereotype.Service;
 * @createDate 2024-01-28 14:22:47
 */
 @Service
-public class UserBackpackServiceImpl extends ServiceImpl<UserBackpackMapper, UserBackpack>
-    implements UserBackpackService {
+public class UserBackpackServiceImpl {
 
 }
 

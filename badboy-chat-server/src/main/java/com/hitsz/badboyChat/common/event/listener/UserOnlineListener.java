@@ -5,6 +5,9 @@ import com.hitsz.badboyChat.common.event.UserOnlineEvent;
 import com.hitsz.badboyChat.common.user.domain.entity.User;
 import com.hitsz.badboyChat.common.user.mapper.UserMapper;
 import com.hitsz.badboyChat.common.user.service.IpService;
+import com.hitsz.badboyChat.common.user.service.cache.UserCache;
+import com.hitsz.badboyChat.common.websocket.service.PushService;
+import com.hitsz.badboyChat.common.websocket.service.adapter.WebSocketAdapter;
 import lombok.extern.slf4j.Slf4j;
 import lombok.var;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +29,20 @@ public class UserOnlineListener {
 
     @Autowired
     private IpService ipService;
+    @Autowired
+    private UserCache userCache;
+    @Autowired
+    private PushService pushService;
+    @Autowired
+    private WebSocketAdapter webSocketAdapter;
+
+    @EventListener(classes = UserOnlineEvent.class)
+    public void saveUserOnline(UserOnlineEvent event) {
+        User user = event.getUser();
+        userCache.online(user.getId(), user.getLastOptTime());
+        pushService.sendPushMsg(webSocketAdapter.buildOnlineResp(user));
+    }
+
 
     @Async
     @EventListener(classes = UserOnlineEvent.class)

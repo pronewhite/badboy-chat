@@ -1,5 +1,6 @@
 package com.hitsz.badboyChat.common.websocket.domain.vo.resp;
 
+import com.hitsz.badboyChat.common.enums.UserActiveStatusEnum;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,7 +22,7 @@ public class ChatMemberResp {
     @ApiModelProperty("uid")
     private Long uid;
     /**
-     * @see com.abin.mallchat.common.user.domain.enums.ChatActiveStatusEnum
+     * @see UserActiveStatusEnum
      */
     @ApiModelProperty("在线状态 1在线 2离线")
     private Integer activeStatus;

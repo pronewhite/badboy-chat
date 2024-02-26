@@ -1,5 +1,8 @@
 package com.hitsz.badboyChat.common.websocket.domain.vo.resp;
 
+import com.hitsz.badboyChat.common.chat.enums.MsgMarkActionTypeEnum;
+import com.hitsz.badboyChat.common.chat.enums.MsgMarkTypeEnum;
+import com.hitsz.badboyChat.common.enums.MessageMarkTypeEnum;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,14 +30,14 @@ public class WSMsgMark {
         @ApiModelProperty("消息id")
         private Long msgId;
         /**
-         * @see com.abin.mallchat.common.chat.domain.enums.MessageMarkTypeEnum
+         * @see MsgMarkTypeEnum
          */
         @ApiModelProperty("标记类型 1点赞 2举报")
         private Integer markType;
         @ApiModelProperty("被标记的数量")
         private Integer markCount;
         /**
-         * @see com.abin.mallchat.common.chat.domain.enums.MessageMarkActTypeEnum
+         * @see MsgMarkActionTypeEnum
          */
         @ApiModelProperty("动作类型 1确认 2取消")
         private Integer actType;

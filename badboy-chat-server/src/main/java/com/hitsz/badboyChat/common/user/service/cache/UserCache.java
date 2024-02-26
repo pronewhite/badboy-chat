@@ -13,10 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -59,5 +56,17 @@ public class UserCache {
     public List<Long> getModifyTimeByUidList(List<Long> uids) {
         List<String> redisKeys = uids.stream().map(uid -> RedisKey.getKey(RedisKey.USRE_MODIFY_KEY,uid)).collect(Collectors.toList());
         return redisCommonProcessor.mget(redisKeys, Long.class);
+    }
+
+    public Long getOnlineNumber() {
+        String key = RedisKey.getKey(RedisKey.ONLINE_USER_ZSET);
+        return RedisCommonProcessor.zcard(key);
+    }
+
+    public void online(Long uid, Date lastOptTime) {
+        String onlineKey = RedisKey.getKey(RedisKey.ONLINE_USER_ZSET);
+        String offlineKey = RedisKey.getKey(RedisKey.OFFLINE_USER_ZSET);
+        redisCommonProcessor.zRemove(offlineKey, uid);
+        redisCommonProcessor.zAdd(onlineKey, uid, lastOptTime.getTime());
     }
 }

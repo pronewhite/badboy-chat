@@ -30,6 +30,15 @@ public class RedisCommonProcessor {
         return redisTemplate.opsForZSet().add(key,value, time);
     }
 
+    /**
+     * 返回Redis中指定键（key）下的有序集合元素的数量。
+     * @param key 指定key
+     * @return
+     */
+    public static Long zcard(String key) {
+        return redisTemplate.opsForZSet().zCard(key);
+    }
+
 
     // 通过key获取value
     public Object get(String key){
@@ -108,5 +117,9 @@ public class RedisCommonProcessor {
 
     static <T> T toBeanOrNull(String o, Class<T> tClass) {
         return o == null ? null : JSONUtil.toBean(o, tClass);
+    }
+
+    public void zRemove(String offlineKey, Long uid) {
+        redisTemplate.opsForZSet().remove(offlineKey, uid);
     }
 }

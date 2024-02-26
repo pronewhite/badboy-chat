@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class RoomGroupDao extends ServiceImpl<RoomGroupMapper, RoomGroup>{
-    public RoomGroup getRoomGroupById(Long roomId) {
+    public RoomGroup getRoomGroupByRoomId(Long roomId) {
         return lambdaQuery()
                 .eq(RoomGroup::getRoomId, roomId)
                 .eq(RoomGroup::getIsDeleted, Boolean.FALSE)

@@ -26,10 +26,15 @@ public class RoomGroupCache {
 
     @Cacheable(value = "roomGroupMembers", key = "'group' + #roomId")
     public List<Long> getRoomGrouopMembersUid(Long roomId) {
-        RoomGroup roomGroup = roomGroupDao.getRoomGroupById(roomId);
+        RoomGroup roomGroup = roomGroupDao.getRoomGroupByRoomId(roomId);
         if(Objects.isNull(roomGroup)){
             return new ArrayList<>();
         }
         return groupMemBerDao.getGroupMembersUid(roomGroup.getId());
+    }
+
+    @Cacheable(value = "roomGroup", key = "'group:' + #roomId")
+    public RoomGroup getGroupByRoomId(Long roomId) {
+        return roomGroupDao.getRoomGroupByRoomId(roomId);
     }
 }

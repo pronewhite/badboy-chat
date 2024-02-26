@@ -4,13 +4,18 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateUnit;
 import cn.hutool.core.date.DateUtil;
-import com.hitsz.badboyChat.common.chat.domain.vo.req.ChatMessageReq;
-import com.hitsz.badboyChat.common.chat.domain.vo.req.GetMessagePageReq;
-import com.hitsz.badboyChat.common.chat.domain.vo.req.MsgCallbackReq;
+import com.hitsz.badboyChat.common.annotation.RedissionLock;
+import com.hitsz.badboyChat.common.chat.domain.vo.req.*;
+import com.hitsz.badboyChat.common.chat.domain.vo.resp.ChatMemberStatisticResp;
+import com.hitsz.badboyChat.common.chat.domain.vo.resp.ChatMessageReadResp;
 import com.hitsz.badboyChat.common.chat.domain.vo.resp.ChatMessageResp;
+import com.hitsz.badboyChat.common.chat.domain.vo.resp.MsgReadInfoResp;
 import com.hitsz.badboyChat.common.chat.enums.MessageTypeEnum;
+import com.hitsz.badboyChat.common.chat.enums.MsgMarkActionTypeEnum;
 import com.hitsz.badboyChat.common.chat.service.adapter.MessageAdapter;
 import com.hitsz.badboyChat.common.chat.service.dao.MessageDao;
+import com.hitsz.badboyChat.common.chat.service.factory.MsgMarkFactory;
+import com.hitsz.badboyChat.common.chat.service.mark.AbstractMsgMarkStrategy;
 import com.hitsz.badboyChat.common.chat.service.strategy.RecallMsgHandler;
 import com.hitsz.badboyChat.common.domain.vo.resp.CursorPageBaseResp;
 import com.hitsz.badboyChat.common.enums.RoleTypeEnum;
@@ -21,21 +26,22 @@ import com.hitsz.badboyChat.common.chat.service.dao.RoomGroupDao;
 import com.hitsz.badboyChat.common.chat.service.factory.MsgHandlerFactory;
 import com.hitsz.badboyChat.common.chat.service.strategy.AbstractMsgHandler;
 import com.hitsz.badboyChat.common.enums.CommonErrorEnum;
+import com.hitsz.badboyChat.common.exception.BusinessException;
 import com.hitsz.badboyChat.common.user.dao.ContactDao;
-import com.hitsz.badboyChat.common.user.dao.MessageMardkao;
+import com.hitsz.badboyChat.common.user.dao.MessageMarkDao;
 import com.hitsz.badboyChat.common.user.dao.RoomFriendDao;
 import com.hitsz.badboyChat.common.user.domain.entity.*;
+import com.hitsz.badboyChat.common.user.service.ContactService;
 import com.hitsz.badboyChat.common.user.service.RoleService;
 import com.hitsz.badboyChat.common.user.service.cache.RoomCache;
+import com.hitsz.badboyChat.common.user.service.cache.UserCache;
 import com.hitsz.badboyChat.common.user.utils.AssertUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -55,7 +61,7 @@ public class ChatServiceImpl implements ChatService {
     @Autowired
     private GroupMemBerDao groupMemBerDao;
     @Autowired
-    private MessageMardkao messageMardkao;
+    private MessageMarkDao messageMarkDao;
     @Autowired
     private ContactDao contactDao;
     @Autowired
@@ -66,6 +72,10 @@ public class ChatServiceImpl implements ChatService {
     private RecallMsgHandler recallMsgHandler;
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
+    @Autowired
+    private ContactService contactService;
+    @Autowired
+    private UserCache userCache;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -111,6 +121,79 @@ public class ChatServiceImpl implements ChatService {
         return getChatResp(message, uid);
     }
 
+
+    /**
+     * 消息标记
+     * @param uid
+     * @param req
+     * 消息标记会有一致性的问题，因为会出现多个人一起标记同一条消息的行为，出现一致性的问题，因此需要加分布式锁
+     */
+    @Override
+    @RedissionLock(key = "#uid")
+    public void msgMark(Long uid, ChatMsgMarkReq req) {
+        AbstractMsgMarkStrategy strategy = MsgMarkFactory.getStrategyOrNull(req.getMarkType());
+        switch (MsgMarkActionTypeEnum.of(req.getActType())){
+            case MARK:
+                strategy.mark(uid, req.getMsgId());
+                break;
+            case CANCLE_MARK:
+                strategy.unMark(uid, req.getMsgId());
+                break;
+            default:
+                throw new BusinessException("该操作不支持");
+        }
+    }
+
+    @Override
+    public void msgRead(Long uid, ChatMsgReadReq req) {
+        Contact contact = contactDao.getByRoomIdAndUid(req.getRoomId(), uid);
+        if(Objects.nonNull(contact)){
+            Contact update = new Contact();
+            update.setId(contact.getId());
+            update.setReadTime(new Date());
+            update.setUid(uid);
+            contactDao.updateById(update);
+        }else{
+            Contact insert = new Contact();
+            insert.setRoomId(req.getRoomId());
+            insert.setId(contact.getId());
+            insert.setUid(uid);
+            insert.setReadTime(new Date());
+            contactDao.save(insert);
+        }
+    }
+
+    @Override
+    public Collection<MsgReadInfoResp> getMsgReadInfo(Long uid, MsgReadInfoReq req) {
+        // 获取到需要展示已读未读数的消息
+        List<Message> msgs = messageDao.getMsgs(uid, req.getMsgIds());
+        msgs.forEach(msg -> AssertUtil.equal(uid, msg.getFromUid(), "只能查询自己发送的消息") );
+        return contactService.getMsgReadInfo(uid, msgs);
+    }
+
+    @Override
+    public CursorPageBaseResp<ChatMessageReadResp> getMsgReadPage(Long uid, ChatMsgReadInfoReq req) {
+        Message message = messageDao.getById(req.getMsgId());
+        AssertUtil.isNotEmpty(message, "消息不存在");
+        AssertUtil.equal(uid, message.getFromUid(), "只能查询自己发送的消息");
+        CursorPageBaseResp<Contact> page;
+        if(req.getSearchType() == 1){
+            // 未读
+            page = contactDao.getUnReadPage(message, req);
+        }else{
+            page = contactDao.getReadPage(message, req);
+        }
+        return CursorPageBaseResp.init(page, MessageAdapter.buildMsgReadInfo(page.getList()));
+    }
+
+    @Override
+    public ChatMemberStatisticResp getMemberStatistic() {
+        ChatMemberStatisticResp resp = new  ChatMemberStatisticResp();
+        Long onlineNumber = userCache.getOnlineNumber();
+        resp.setOnlineNumber(onlineNumber.intValue());
+        return  resp;
+    }
+
     private void checkCallBackMsgValid(Message message, Long uid) {
         // 如果消息类型是撤回消息类型，那么不能撤回
         AssertUtil.notEqual(message.getType(), MessageTypeEnum.RECALL.getType(),"非法操作");
@@ -149,7 +232,7 @@ public class ChatServiceImpl implements ChatService {
             return new ArrayList<>();
         }
         // 取出所有消息的消息id，然后查出所有消息的标记信息
-        List<MessageMark> messageMarks = messageMardkao.getMessageMarkByIdsBatch(messages.stream().map(Message::getId).collect(Collectors.toList()));
+        List<MessageMark> messageMarks = messageMarkDao.getMessageMarkByIdsBatch(messages.stream().map(Message::getId).collect(Collectors.toList()));
         return MessageAdapter.buildChatMessageResp(messages, messageMarks, reciveUid);
     }
 
@@ -164,7 +247,7 @@ public class ChatServiceImpl implements ChatService {
             AssertUtil.isNotEmpty(roomFriend, "你已经被删除好友了，无法发送消息哦");
         }
         if(room.isRoomGroup()){
-            RoomGroup roomGroup = roomGroupDao.getRoomGroupById(req.getRoomId());
+            RoomGroup roomGroup = roomGroupDao.getRoomGroupByRoomId(req.getRoomId());
             GroupMember member = groupMemBerDao.getMember(roomGroup.getId(), uid);
             AssertUtil.isNotEmpty(member,"你已经被删除群聊了，无法发送消息哦");
         }

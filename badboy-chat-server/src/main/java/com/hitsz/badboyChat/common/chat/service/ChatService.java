@@ -1,11 +1,14 @@
 package com.hitsz.badboyChat.common.chat.service;
 
-import com.hitsz.badboyChat.common.chat.domain.vo.req.ChatMessageReq;
-import com.hitsz.badboyChat.common.chat.domain.vo.req.GetMessagePageReq;
-import com.hitsz.badboyChat.common.chat.domain.vo.req.MsgCallbackReq;
+import com.hitsz.badboyChat.common.chat.domain.vo.req.*;
+import com.hitsz.badboyChat.common.chat.domain.vo.resp.ChatMemberStatisticResp;
+import com.hitsz.badboyChat.common.chat.domain.vo.resp.ChatMessageReadResp;
 import com.hitsz.badboyChat.common.chat.domain.vo.resp.ChatMessageResp;
+import com.hitsz.badboyChat.common.chat.domain.vo.resp.MsgReadInfoResp;
 import com.hitsz.badboyChat.common.domain.vo.resp.CursorPageBaseResp;
 import com.hitsz.badboyChat.common.user.domain.entity.Message;
+
+import java.util.Collection;
 
 public interface ChatService {
     /**
@@ -45,4 +48,14 @@ public interface ChatService {
      * @return
      */
     ChatMessageResp getMsgResp(Long msgId, Long uid);
+
+    void msgMark(Long uid, ChatMsgMarkReq req);
+
+    void msgRead(Long uid, ChatMsgReadReq req);
+
+    Collection<MsgReadInfoResp> getMsgReadInfo(Long uid, MsgReadInfoReq req);
+
+    CursorPageBaseResp<ChatMessageReadResp> getMsgReadPage(Long uid, ChatMsgReadInfoReq req);
+
+    ChatMemberStatisticResp getMemberStatistic();
 }
