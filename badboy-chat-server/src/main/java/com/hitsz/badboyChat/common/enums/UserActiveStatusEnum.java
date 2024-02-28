@@ -3,6 +3,11 @@ package com.hitsz.badboyChat.common.enums;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
+import java.util.Arrays;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 /**
  * @author badboy
  * @version 1.0
@@ -17,4 +22,14 @@ public enum UserActiveStatusEnum {
 
     private Integer status;
     private String desc;
+
+    private static Map<Integer, UserActiveStatusEnum> cache;
+
+    static {
+        cache = Arrays.stream(UserActiveStatusEnum.values()).collect(Collectors.toMap(UserActiveStatusEnum::getStatus, Function.identity()));
+    }
+
+    public static UserActiveStatusEnum of(Integer code) {
+        return cache.get(code);
+    }
 }

@@ -4,9 +4,14 @@ import com.hitsz.badboyChat.common.chat.domain.vo.req.ChatMessageReq;
 import com.hitsz.badboyChat.common.chat.domain.vo.resp.GroupMemberListResp;
 import com.hitsz.badboyChat.common.chat.enums.MessageTypeEnum;
 import com.hitsz.badboyChat.common.chat.enums.UserRoomRoleEnum;
+import com.hitsz.badboyChat.common.chat.service.dao.GroupMemBerDao;
 import com.hitsz.badboyChat.common.user.domain.entity.GroupMember;
 import com.hitsz.badboyChat.common.user.domain.entity.RoomFriend;
 import com.hitsz.badboyChat.common.user.domain.entity.User;
+import com.hitsz.badboyChat.common.user.service.cache.GroupMemberCache;
+import com.hitsz.badboyChat.common.websocket.domain.vo.resp.ChatMemberResp;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -16,7 +21,9 @@ import java.util.stream.Collectors;
  * @version 1.0
  * Create by 2024/2/26 22:47
  */
+
 public class ChatAdapter {
+
     public static List<GroupMemberListResp> buildGroupMemberListResp(List<User> users) {
         return users.stream().map(user -> {
             GroupMemberListResp resp = new GroupMemberListResp();
@@ -62,5 +69,26 @@ public class ChatAdapter {
                 .append(toAddUserMap.values().stream().map(u -> "\"" + user.getName() + "\"").collect(Collectors.joining(",")));
         chatMessageReq.setMsgContent(sb.toString());
         return chatMessageReq;
+    }
+
+    public static Collection<? extends ChatMemberResp> buildMemberListResp(List<User> list) {
+        return list.stream().map(user -> {
+            ChatMemberResp resp = new ChatMemberResp();
+            resp.setActiveStatus(user.getActiveStatus());
+            resp.setLastOptTime(user.getLastOptTime());
+            resp.setUid(user.getId());
+            return resp;
+        }).collect(Collectors.toList());
+    }
+
+    public static List<GroupMember> buildAddGroupMembers(Long id, List<Long> uids) {
+        return uids.stream()
+                .map(uid -> {
+                    GroupMember groupMember = new GroupMember();
+                    groupMember.setRole(UserRoomRoleEnum.USER.getCode());
+                    groupMember.setUid(uid);
+                    groupMember.setGroupId(id);
+                    return groupMember;
+                }).collect(Collectors.toList());
     }
 }

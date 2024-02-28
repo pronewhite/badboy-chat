@@ -1,5 +1,6 @@
 package com.hitsz.badboyChat.common.user.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.Pair;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.hitsz.badboyChat.common.chat.domain.dto.RoomBaseInfo;
@@ -13,9 +14,11 @@ import com.hitsz.badboyChat.common.domain.vo.req.CursorPageBaseReq;
 import com.hitsz.badboyChat.common.domain.vo.resp.CursorPageBaseResp;
 import com.hitsz.badboyChat.common.enums.RoomTypeEnum;
 import com.hitsz.badboyChat.common.user.dao.ContactDao;
+import com.hitsz.badboyChat.common.user.dao.RoomDao;
 import com.hitsz.badboyChat.common.user.domain.entity.*;
 import com.hitsz.badboyChat.common.user.mapper.ContactMapper;
 import com.hitsz.badboyChat.common.user.service.ContactService;
+import com.hitsz.badboyChat.common.user.service.RoomService;
 import com.hitsz.badboyChat.common.user.service.cache.*;
 import com.hitsz.badboyChat.common.user.utils.AssertUtil;
 import com.hitsz.badboyChat.common.user.utils.CursorUtils;
@@ -50,6 +53,10 @@ public class ContactServiceImpl implements  ContactService{
     private RoomGroupCache roomGroupCache;
     @Autowired
     private RoomFriendCache roomFriendCache;
+    @Autowired
+    private RoomDao roomDao;
+    @Autowired
+    private RoomService roomService;
 
     @Override
     public CursorPageBaseResp<ChatRoomResp> getChatRooms(Long uid, CursorPageBaseReq req) {
@@ -179,6 +186,20 @@ public class ContactServiceImpl implements  ContactService{
             return resp;
         }).collect(Collectors.toList());
 
+    }
+
+    @Override
+    public ChatRoomResp getContactDetail(Long roomId, Long uid) {
+        Room room = roomDao.getById(roomId);
+        AssertUtil.isNotEmpty(room, "房间号有误");
+        return buildChatRoomResp(Collections.singletonList(roomId), uid).get(0);
+    }
+
+    @Override
+    public ChatRoomResp getContactDetailFriend(Long friendUid, Long uid) {
+        RoomFriend roomFriend = roomService.createRoomFriend(Arrays.asList(friendUid, uid));
+        AssertUtil.isNotEmpty(roomFriend, "好友关系不存在");
+        return buildChatRoomResp(Collections.singletonList(roomFriend.getRoomId()), uid).get(0);
     }
 }
 

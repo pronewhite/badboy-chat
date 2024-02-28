@@ -98,4 +98,17 @@ public class ContactDao extends ServiceImpl<ContactMapper, Contact>{
                 .in(Contact::getRoomId, roomList)
                 .list();
     }
+
+    public void removeContact(Long roomId) {
+        lambdaUpdate()
+                .eq(Contact::getRoomId, roomId)
+                .remove();
+    }
+
+    public void removeContact(Long roomId, Long uid) {
+        lambdaUpdate()
+                .eq(Contact::getRoomId, roomId)
+                .eq(Contact::getUid, uid)
+                .remove();
+    }
 }

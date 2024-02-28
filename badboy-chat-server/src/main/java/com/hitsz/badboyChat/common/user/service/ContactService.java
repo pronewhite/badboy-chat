@@ -27,4 +27,8 @@ public interface ContactService {
     CursorPageBaseResp<ChatRoomResp> getChatRooms(Long uid, CursorPageBaseReq req);
 
     Collection<MsgReadInfoResp> getMsgReadInfo(Long uid, List<Message> msgs);
+
+    ChatRoomResp getContactDetail(Long roomId, Long uid);
+
+    ChatRoomResp getContactDetailFriend(Long friendUid, Long uid);
 }

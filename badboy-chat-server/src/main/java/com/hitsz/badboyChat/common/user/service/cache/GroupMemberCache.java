@@ -20,13 +20,18 @@ public class GroupMemberCache {
     @Autowired
     private GroupMemBerDao groupMemBerDao;
 
-    @Cacheable(value = "groupMember", key = "'group:'+ #groupId")
+    @Cacheable(value = "groupMembers", key = "'group:'+ #groupId")
     public List<GroupMember> getMemberList(Long groupId){
         return groupMemBerDao.getMembers(groupId);
     }
 
-    @CacheEvict(value = "groupMember", key = "'group:'+ #groupId")
+    @CacheEvict(value = "groupMembers", key = "'group:'+ #groupId")
     public List<GroupMember> evictMemberUidList(Long groupId) {
         return null;
+    }
+
+    @Cacheable(value = "groupMember", key = "'group:'+ #groupId +':uid:'+ #uid")
+    public GroupMember getMember(Long groupId, Long uid) {
+        return groupMemBerDao.getMember(groupId, uid);
     }
 }

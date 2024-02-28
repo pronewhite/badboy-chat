@@ -12,13 +12,17 @@ import com.hitsz.badboyChat.common.chat.domain.vo.resp.ChatMessageResp;
 import com.hitsz.badboyChat.common.chat.domain.vo.resp.MsgReadInfoResp;
 import com.hitsz.badboyChat.common.chat.enums.MessageTypeEnum;
 import com.hitsz.badboyChat.common.chat.enums.MsgMarkActionTypeEnum;
+import com.hitsz.badboyChat.common.chat.service.ChatMemberHelper;
+import com.hitsz.badboyChat.common.chat.service.adapter.ChatAdapter;
 import com.hitsz.badboyChat.common.chat.service.adapter.MessageAdapter;
 import com.hitsz.badboyChat.common.chat.service.dao.MessageDao;
 import com.hitsz.badboyChat.common.chat.service.factory.MsgMarkFactory;
 import com.hitsz.badboyChat.common.chat.service.mark.AbstractMsgMarkStrategy;
 import com.hitsz.badboyChat.common.chat.service.strategy.RecallMsgHandler;
+import com.hitsz.badboyChat.common.domain.vo.req.CursorPageBaseReq;
 import com.hitsz.badboyChat.common.domain.vo.resp.CursorPageBaseResp;
 import com.hitsz.badboyChat.common.enums.RoleTypeEnum;
+import com.hitsz.badboyChat.common.enums.UserActiveStatusEnum;
 import com.hitsz.badboyChat.common.event.MessageSendEvent;
 import com.hitsz.badboyChat.common.chat.service.ChatService;
 import com.hitsz.badboyChat.common.chat.service.dao.GroupMemBerDao;
@@ -30,18 +34,22 @@ import com.hitsz.badboyChat.common.exception.BusinessException;
 import com.hitsz.badboyChat.common.user.dao.ContactDao;
 import com.hitsz.badboyChat.common.user.dao.MessageMarkDao;
 import com.hitsz.badboyChat.common.user.dao.RoomFriendDao;
+import com.hitsz.badboyChat.common.user.dao.UserDao;
 import com.hitsz.badboyChat.common.user.domain.entity.*;
 import com.hitsz.badboyChat.common.user.service.ContactService;
 import com.hitsz.badboyChat.common.user.service.RoleService;
 import com.hitsz.badboyChat.common.user.service.cache.RoomCache;
 import com.hitsz.badboyChat.common.user.service.cache.UserCache;
 import com.hitsz.badboyChat.common.user.utils.AssertUtil;
+import com.hitsz.badboyChat.common.websocket.domain.vo.resp.ChatMemberResp;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -76,6 +84,8 @@ public class ChatServiceImpl implements ChatService {
     private ContactService contactService;
     @Autowired
     private UserCache userCache;
+    @Autowired
+    private UserDao userDao;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -192,6 +202,41 @@ public class ChatServiceImpl implements ChatService {
         Long onlineNumber = userCache.getOnlineNumber();
         resp.setOnlineNumber(onlineNumber.intValue());
         return  resp;
+    }
+
+    @Override
+    public CursorPageBaseResp<ChatMemberResp> getMemberPage(MemberReq req, List<Long> memberList) {
+        // 取出并解析游标
+        Pair<UserActiveStatusEnum, String> cursor = ChatMemberHelper.getCursor(req.getCursor());
+        UserActiveStatusEnum activeStatus = cursor.getFirst();
+        String timeCursor = cursor.getSecond();
+        List<ChatMemberResp> resultList = new ArrayList<>();
+        CursorPageBaseResp<User> cursorPage;
+        if(activeStatus == UserActiveStatusEnum.ONLINE){
+            // 在线列表
+            cursorPage = userDao.getCursorPage(memberList, new CursorPageBaseReq<>(req.getPageSize(), timeCursor), activeStatus);
+            resultList.addAll(ChatAdapter.buildMemberListResp(cursorPage.getList()));
+            if(cursorPage.getIsLast()){
+                // 如果到了最后一页那么需要从离线列表中获取
+                activeStatus = UserActiveStatusEnum.OFFLINE;
+                Integer pageSize = req.getPageSize() - resultList.size();
+                CursorPageBaseResp<User> offLinePage = userDao.getCursorPage(memberList, new CursorPageBaseReq<>(pageSize, timeCursor), activeStatus);
+                resultList.addAll(ChatAdapter.buildMemberListResp(offLinePage.getList()));
+            }
+        }else{
+            // 离线列表
+            cursorPage = userDao.getCursorPage(memberList, new CursorPageBaseReq<>(req.getPageSize(), timeCursor), activeStatus);
+            resultList.addAll(ChatAdapter.buildMemberListResp(cursorPage.getList()));
+        }
+        // 获取群成员角色
+        List<Long> uidList = resultList.stream().map(ChatMemberResp::getUid).collect(Collectors.toList());
+        RoomGroup roomGroup = roomGroupDao.getRoomGroupByRoomId(req.getRoomId());
+        List<GroupMember> members = groupMemBerDao.getMembers(roomGroup.getId(), uidList);
+        Map<Long, GroupMember> memberMap = members.stream().collect(Collectors.toMap(GroupMember::getUid, Function.identity()));
+        resultList.forEach(member -> {
+            member.setRoleId(memberMap.get(member.getUid()).getRole());
+        });
+        return new CursorPageBaseResp<>(ChatMemberHelper.generateCursor(cursorPage.getCursor(), activeStatus),cursorPage.getIsLast(), resultList);
     }
 
     private void checkCallBackMsgValid(Message message, Long uid) {

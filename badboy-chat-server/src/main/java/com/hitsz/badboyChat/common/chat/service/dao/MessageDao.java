@@ -58,4 +58,10 @@ public class MessageDao extends ServiceImpl<MessageMapper, Message>{
                 .gt(Message::getCreateTime,readTime)
                 .count();
     }
+
+    public void removeMessages(Long roomId) {
+        lambdaUpdate()
+                .eq(Message::getRoomId,roomId)
+                .remove();
+    }
 }

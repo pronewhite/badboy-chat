@@ -7,8 +7,10 @@ import com.hitsz.badboyChat.common.chat.domain.vo.resp.ChatMessageResp;
 import com.hitsz.badboyChat.common.chat.domain.vo.resp.MsgReadInfoResp;
 import com.hitsz.badboyChat.common.domain.vo.resp.CursorPageBaseResp;
 import com.hitsz.badboyChat.common.user.domain.entity.Message;
+import com.hitsz.badboyChat.common.websocket.domain.vo.resp.ChatMemberResp;
 
 import java.util.Collection;
+import java.util.List;
 
 public interface ChatService {
     /**
@@ -58,4 +60,6 @@ public interface ChatService {
     CursorPageBaseResp<ChatMessageReadResp> getMsgReadPage(Long uid, ChatMsgReadInfoReq req);
 
     ChatMemberStatisticResp getMemberStatistic();
+
+    CursorPageBaseResp<ChatMemberResp> getMemberPage(MemberReq req, List<Long> memberList);
 }

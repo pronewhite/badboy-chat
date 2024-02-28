@@ -1,7 +1,10 @@
 package com.hitsz.badboyChat.common.user.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.Date;
@@ -12,6 +15,9 @@ import java.util.Date;
  */
 @TableName(value ="group_member")
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class GroupMember implements Serializable {
     /**
      * id

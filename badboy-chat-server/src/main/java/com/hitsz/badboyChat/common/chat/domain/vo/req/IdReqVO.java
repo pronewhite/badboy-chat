@@ -1,6 +1,9 @@
 package com.hitsz.badboyChat.common.chat.domain.vo.req;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 /**
  * @author badboy
@@ -8,6 +11,9 @@ import lombok.Data;
  * Create by 2024/2/26 18:19
  */
 @Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class IdReqVO {
 
     private Long id;

@@ -117,6 +117,17 @@ public class WebSocketAdapter {
         return resp;
     }
 
+    public static WSBaseResp<WSMemberChange> buildExitGroup(Long roomId, Long uid) {
+        WSBaseResp<WSMemberChange> wsBaseResp = new WSBaseResp<>();
+        wsBaseResp.setType(WSRespTypeEnum.MEMBER_CHANGE.getType());
+        WSMemberChange wsMemberChange = new WSMemberChange();
+        wsMemberChange.setUid(uid);
+        wsMemberChange.setRoomId(roomId);
+        wsMemberChange.setChangeType(WSMemberChange.CHANGE_TYPE_REMOVE);
+        wsBaseResp.setData(wsMemberChange);
+        return wsBaseResp;
+    }
+
     public  WSBaseResp<WSOnlineOfflineNotify> buildOnlineResp(User user) {
         WSBaseResp<WSOnlineOfflineNotify> resp = new WSBaseResp<>();
         resp.setType(WSRespTypeEnum.ONLINE_OFFLINE_NOTIFY.getType());

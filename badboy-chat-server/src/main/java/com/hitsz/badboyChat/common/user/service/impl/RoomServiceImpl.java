@@ -2,16 +2,22 @@ package com.hitsz.badboyChat.common.user.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import com.hitsz.badboyChat.common.annotation.RedissionLock;
-import com.hitsz.badboyChat.common.chat.domain.vo.req.AddUserReq;
-import com.hitsz.badboyChat.common.chat.domain.vo.req.RemoveUserReq;
+import com.hitsz.badboyChat.common.chat.domain.vo.req.*;
 import com.hitsz.badboyChat.common.chat.domain.vo.resp.GroupMemberListResp;
 import com.hitsz.badboyChat.common.chat.domain.vo.resp.RoomDetailResp;
 import com.hitsz.badboyChat.common.chat.enums.UserRoomRoleEnum;
 import com.hitsz.badboyChat.common.chat.service.adapter.ChatAdapter;
 import com.hitsz.badboyChat.common.chat.service.dao.GroupMemBerDao;
+import com.hitsz.badboyChat.common.chat.service.dao.MessageDao;
 import com.hitsz.badboyChat.common.chat.service.dao.RoomGroupDao;
+import com.hitsz.badboyChat.common.chat.service.impl.ChatServiceImpl;
+import com.hitsz.badboyChat.common.constant.GroupConstant;
 import com.hitsz.badboyChat.common.domain.vo.resp.ApiResult;
+import com.hitsz.badboyChat.common.domain.vo.resp.CursorPageBaseResp;
+import com.hitsz.badboyChat.common.enums.RoomTypeEnum;
+import com.hitsz.badboyChat.common.enums.YesOrNoEnum;
 import com.hitsz.badboyChat.common.event.GroupAddMemberEvent;
+import com.hitsz.badboyChat.common.user.dao.ContactDao;
 import com.hitsz.badboyChat.common.user.dao.RoomDao;
 import com.hitsz.badboyChat.common.user.dao.RoomFriendDao;
 import com.hitsz.badboyChat.common.user.dao.UserDao;
@@ -23,6 +29,7 @@ import com.hitsz.badboyChat.common.user.service.cache.RoomGroupCache;
 import com.hitsz.badboyChat.common.user.service.cache.UserCache;
 import com.hitsz.badboyChat.common.user.service.cache.UserInfoCache;
 import com.hitsz.badboyChat.common.user.utils.AssertUtil;
+import com.hitsz.badboyChat.common.websocket.domain.vo.resp.ChatMemberResp;
 import com.hitsz.badboyChat.common.websocket.domain.vo.resp.WSBaseResp;
 import com.hitsz.badboyChat.common.websocket.domain.vo.resp.WSMemberChange;
 import com.hitsz.badboyChat.common.websocket.service.PushService;
@@ -65,6 +72,12 @@ public class RoomServiceImpl implements RoomService {
     private PushService pushService;
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
+    @Autowired
+    private ChatServiceImpl chatService;
+    @Autowired
+    private MessageDao messageDao;
+    @Autowired
+    private ContactDao contactDao;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -177,6 +190,143 @@ public class RoomServiceImpl implements RoomService {
         groupMemBerDao.saveBatch(groupMembers);
         // 发送添加用户的事件
         applicationEventPublisher.publishEvent(new GroupAddMemberEvent(this, roomGroup, groupMembers, uid));
+    }
+
+    @Override
+    public CursorPageBaseResp<ChatMemberResp> getMemberPage(MemberReq req) {
+        Long roomId = req.getRoomId();
+        Room room = roomDao.getById(roomId);
+        RoomGroup group = roomGroupCache.getGroupByRoomId(roomId);
+        AssertUtil.isNotEmpty(room,"房间号有误");
+        AssertUtil.isNotEmpty(group,"该群聊不存在");
+        List<Long> memberList;
+        if(room.isHotRoom()){
+            // 全员群展示全部成员
+            memberList = null;
+        }else{
+            memberList = groupMemberCache.getMemberList(group.getId()).stream().map(GroupMember::getUid).collect(Collectors.toList());
+        }
+        return chatService.getMemberPage(req, memberList);
+    }
+
+    @Override
+    public void exitGroup(Long roomId, Long uid) {
+        Room room = roomDao.getById(roomId);
+        RoomGroup roomGroup = roomGroupDao.getRoomGroupByRoomId(roomId);
+        AssertUtil.isNotEmpty(roomGroup,"房间号有误");
+        GroupMember member = groupMemberCache.getMember(roomGroup.getId(), uid);
+        AssertUtil.isNotEmpty(member,"您尚未加入该群聊");
+        // 当前用户是否是群主，群主退出群聊意味着解散群聊
+        if(UserRoomRoleEnum.LEADER.getCode().equals(member.getRole())){
+            // 群主退出群聊，解散群聊
+            dismissGroup(roomId, roomGroup.getId());
+        }else{
+            // 非群主退出群聊
+            groupMemBerDao.removeMember(roomGroup.getId(), uid);
+            // 删除会话
+            contactDao.removeContact(roomId, uid);
+            // 推送消息给群成员，有成员退出群聊
+            List<Long> uidList = groupMemberCache.getMemberList(roomGroup.getId()).stream().map(GroupMember::getUid).collect(Collectors.toList());
+            WSBaseResp<WSMemberChange> ws = WebSocketAdapter.buildExitGroup(roomId, uid);
+            pushService.sendPushMsg(ws, uidList);
+            // 删除缓存
+            groupMemberCache.evictMemberUidList(roomGroup.getId());
+        }
+    }
+
+    @Override
+    public IdReqVO addGroup(GroupAddReq req, Long uid) {
+        AssertUtil.isEmpty(uid, "您尚未登录");
+        // 新建群聊
+        RoomGroup roomGroup = createRoomGroup(uid);
+        // 保存群成员
+        List<Long> uids = req.getUids();
+        List<GroupMember> members = ChatAdapter.buildAddGroupMembers(roomGroup.getId(),uids);
+        groupMemBerDao.saveBatch(members);
+        // 发送邀请加群消息，复用之前的接口
+        applicationEventPublisher.publishEvent(new GroupAddMemberEvent(this, roomGroup, members, uid));
+        return new IdReqVO(roomGroup.getRoomId());
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public RoomGroup createRoomGroup(Long uid) {
+        List<GroupMember> selfGroupRoom = groupMemBerDao.getSelfGroupRoom(uid);
+        AssertUtil.isEmpty(selfGroupRoom, "一个人只能创建一个群聊哦");
+        // 创建群组
+        RoomGroup roomGroup = new RoomGroup();
+        User user = userInfoCache.get(uid);
+        Room  room = new Room();
+        room.setType(RoomTypeEnum.GROUP_CHAT.getCode());
+        room.setHotFlag(YesOrNoEnum.NO.getCode());
+        boolean save = roomDao.save(room);
+        AssertUtil.isTrue(save,"创建房间失败");
+        Long roomId = room.getId();
+        roomGroup.setRoomId(roomId);
+        roomGroup.setName(user.getName() + "的群聊");
+        roomGroup.setAvatar(user.getAvatar());
+        boolean saveRoomGroup = roomGroupDao.save(roomGroup);
+        AssertUtil.isTrue(saveRoomGroup,"创建群聊失败");
+        // 插入群主
+        GroupMember leader = GroupMember.builder()
+                .groupId(roomGroup.getId())
+                .role(UserRoomRoleEnum.LEADER.getCode())
+                .uid(uid)
+                .build();
+        groupMemBerDao.save(leader);
+        return roomGroup;
+    }
+
+    @Override
+    public void addAdmin(AdminAddOrRemoveReq req, Long uid) {
+        AssertUtil.isNotEmpty(uid, "您尚未登录");
+        Room room = roomDao.getById(req.getRoomId());
+        RoomGroup roomGroup = roomGroupDao.getRoomGroupByRoomId(room.getId());
+        AssertUtil.isNotEmpty(roomGroup, "房间号有误");
+        GroupMember currentMember = groupMemBerDao.getMember(roomGroup.getId(), uid);
+        // 判断当前用户是否有权限，只有群主能添加管理员
+        AssertUtil.equal(currentMember.getRole(), UserRoomRoleEnum.LEADER.getCode(), "只有群主能添加管理员哦");
+        // 判断要添加为管理员的用户是否在群聊中
+        List<Long> membersIds = groupMemberCache.getMemberList(roomGroup.getId()).stream().map(GroupMember::getUid).distinct().collect(Collectors.toList());
+        Set<Long> toAddUidSet = req.getUids().stream().filter(id -> !membersIds.contains(id)).collect(Collectors.toSet());
+        if(CollectionUtil.isEmpty(toAddUidSet)){
+            return;
+        }
+        // 判断群管理员数量是否已经达到要求
+        Set<Long> adminUids = groupMemBerDao.getAdminCount(roomGroup.getId());
+        adminUids.addAll(toAddUidSet);
+        AssertUtil.isTrue(adminUids.size() < GroupConstant.MAX_ADMIN_COUNT, "群管理员数量已达上限");
+        // 添加群管理员
+        groupMemBerDao.addAdmin(roomGroup.getId(), new ArrayList<>(adminUids));
+    }
+
+    @Override
+    public void removeAdmin(AdminAddOrRemoveReq req, Long uid) {
+        AssertUtil.isNotEmpty(uid, "您尚未登录");
+        Room room = roomDao.getById(req.getRoomId());
+        RoomGroup roomGroup = roomGroupDao.getRoomGroupByRoomId(room.getId());
+        AssertUtil.isNotEmpty(roomGroup, "房间号有误");
+        GroupMember currentMember = groupMemBerDao.getMember(roomGroup.getId(), uid);
+        // 判断当前用户是否有权限，只有群主能移除管理员
+        AssertUtil.equal(currentMember.getRole(), UserRoomRoleEnum.LEADER.getCode(), "只有群主能移除管理员哦");
+        // 判断要撤销的管理员是否在群内
+        boolean inGroupRoom = groupMemBerDao.isInGroupRoom(roomGroup.getId(), req.getUids());
+        AssertUtil.isTrue(inGroupRoom, "请确保您要撤销的管理员在群内");
+        // 移除管理员
+        groupMemBerDao.removeAdmin(roomGroup.getId(), req.getUids());
+    }
+
+    private void dismissGroup(Long roomId, Long groupId) {
+        // 删除房间
+        roomDao.removeById(roomId);
+        // 删除会话
+        contactDao.removeContact(roomId);
+        // 删除群成员
+        groupMemBerDao.removeMembers(groupId);
+        // 删除群组
+        roomGroupDao.removeById(groupId);
+        // 删除群消息
+        messageDao.removeMessages(roomId);
     }
 
     private UserRoomRoleEnum getUserRoomRole(RoomGroup roomGroup, Long uid, Room room) {
