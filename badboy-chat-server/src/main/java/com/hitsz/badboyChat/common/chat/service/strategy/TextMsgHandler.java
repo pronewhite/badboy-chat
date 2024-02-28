@@ -111,6 +111,11 @@ public class TextMsgHandler extends AbstractMsgHandler<TextMsgDTO>{
     }
 
     @Override
+    public Object showContactMsg(Message message) {
+        return  message.getContent();
+    }
+
+    @Override
     public Object showMsg(Message message) {
         TextMsgResp textMsgResp = new TextMsgResp();
         textMsgResp.setContent(message.getContent());

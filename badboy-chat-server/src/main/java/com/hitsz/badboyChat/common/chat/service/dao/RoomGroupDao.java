@@ -5,6 +5,8 @@ import com.hitsz.badboyChat.common.user.domain.entity.RoomGroup;
 import com.hitsz.badboyChat.common.user.mapper.RoomGroupMapper;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 /**
  * @author badboy
  * @version 1.0
@@ -17,5 +19,11 @@ public class RoomGroupDao extends ServiceImpl<RoomGroupMapper, RoomGroup>{
                 .eq(RoomGroup::getRoomId, roomId)
                 .eq(RoomGroup::getIsDeleted, Boolean.FALSE)
                 .one();
+    }
+
+    public List<RoomGroup> getRoomGroups(List<Long> req) {
+        return lambdaQuery()
+                .in(RoomGroup::getRoomId, req)
+                .list();
     }
 }

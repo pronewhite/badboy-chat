@@ -1,5 +1,9 @@
 package com.hitsz.badboyChat.common.user.service.impl;
 
+import cn.hutool.core.collection.CollectionUtil;
+import com.hitsz.badboyChat.common.annotation.RedissionLock;
+import com.hitsz.badboyChat.common.chat.domain.vo.req.AddUserReq;
+import com.hitsz.badboyChat.common.chat.domain.vo.req.RemoveUserReq;
 import com.hitsz.badboyChat.common.chat.domain.vo.resp.GroupMemberListResp;
 import com.hitsz.badboyChat.common.chat.domain.vo.resp.RoomDetailResp;
 import com.hitsz.badboyChat.common.chat.enums.UserRoomRoleEnum;
@@ -7,23 +11,29 @@ import com.hitsz.badboyChat.common.chat.service.adapter.ChatAdapter;
 import com.hitsz.badboyChat.common.chat.service.dao.GroupMemBerDao;
 import com.hitsz.badboyChat.common.chat.service.dao.RoomGroupDao;
 import com.hitsz.badboyChat.common.domain.vo.resp.ApiResult;
+import com.hitsz.badboyChat.common.event.GroupAddMemberEvent;
 import com.hitsz.badboyChat.common.user.dao.RoomDao;
 import com.hitsz.badboyChat.common.user.dao.RoomFriendDao;
 import com.hitsz.badboyChat.common.user.dao.UserDao;
 import com.hitsz.badboyChat.common.user.domain.entity.*;
 import com.hitsz.badboyChat.common.user.service.RoomService;
 import com.hitsz.badboyChat.common.user.service.adapter.FriendAdapter;
+import com.hitsz.badboyChat.common.user.service.cache.GroupMemberCache;
 import com.hitsz.badboyChat.common.user.service.cache.RoomGroupCache;
 import com.hitsz.badboyChat.common.user.service.cache.UserCache;
 import com.hitsz.badboyChat.common.user.service.cache.UserInfoCache;
 import com.hitsz.badboyChat.common.user.utils.AssertUtil;
+import com.hitsz.badboyChat.common.websocket.domain.vo.resp.WSBaseResp;
+import com.hitsz.badboyChat.common.websocket.domain.vo.resp.WSMemberChange;
+import com.hitsz.badboyChat.common.websocket.service.PushService;
+import com.hitsz.badboyChat.common.websocket.service.adapter.WebSocketAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
 * @author lenovo
@@ -49,6 +59,12 @@ public class RoomServiceImpl implements RoomService {
     private UserInfoCache userInfoCache;
     @Autowired
     private RoomGroupCache roomGroupCache;
+    @Autowired
+    private GroupMemberCache groupMemberCache;
+    @Autowired
+    private PushService pushService;
+    @Autowired
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -112,6 +128,55 @@ public class RoomServiceImpl implements RoomService {
             Map<Long, User> memberInfo = userInfoCache.getBatch(groupMembersUid);
             return ChatAdapter.buildGroupMemberListResp(memberInfo);
         }
+    }
+
+    @Override
+    public void removeUser(RemoveUserReq req, Long uid) {
+        RoomGroup group = roomGroupCache.getGroupByRoomId(req.getRoomId());
+        AssertUtil.isNotEmpty(group, "房间不存在");
+        GroupMember groupMember = groupMemBerDao.getMember(group.getId(), req.getUid());
+        AssertUtil.isNotEmpty(groupMember, "用户不在房间中");
+        GroupMember self = groupMemBerDao.getMember(group.getId(), uid);
+        AssertUtil.isNotEmpty(self, "抱歉，您尚未加入该群聊");
+        // 校验要删除的用户是否是群主，群主不可删除
+        AssertUtil.notEqual(groupMember.getRole(), UserRoomRoleEnum.LEADER.getCode(), "暂无权限");
+        if(groupMember.getRole() == UserRoomRoleEnum.ADMIN.getCode()){
+            // 要删除的用户时管理员，那么需要当前用户必须是群主才能删除
+            AssertUtil.equal(self.getRole(), UserRoomRoleEnum.LEADER.getCode(), "抱歉，您无权限删除管理员");
+        }else{
+            // 表示删除的用户是普通成员，那么当前用户必须是管理员或者群主才能删除
+            AssertUtil.isTrue(self.getRole() == UserRoomRoleEnum.ADMIN.getCode() || self.getRole() == UserRoomRoleEnum.LEADER.getCode(), "抱歉，您无权限删除群成员");
+        }
+        groupMemBerDao.removeById(groupMember.getId());
+        // 向群成员发消息通知已经有用户被移除群聊
+        List<GroupMember> memberList = groupMemberCache.getMemberList(group.getId());
+        WSBaseResp<WSMemberChange> memberChangeWSBaseResp = WebSocketAdapter.buildMemberChangeResp(group.getRoomId(), groupMember);
+        pushService.sendPushMsg(memberChangeWSBaseResp, memberList.stream().map(GroupMember::getId).collect(Collectors.toList()));
+        groupMemberCache.evictMemberUidList(group.getId());
+    }
+
+    @Override
+    @RedissionLock(key = "#req.roomId")
+    @Transactional(rollbackFor = Exception.class)
+    public void addUser(AddUserReq req, Long uid) {
+        Room room = roomDao.getById(req.getRoomId());
+        AssertUtil.isFalse(room.isHotRoom(), "全员群无需邀请好友");
+        RoomGroup roomGroup = roomGroupDao.getRoomGroupByRoomId(req.getRoomId());
+        AssertUtil.isNotEmpty(roomGroup,"该群聊不存在");
+        GroupMember currentMember = groupMemBerDao.getMember(roomGroup.getId(), uid);
+        AssertUtil.isNotEmpty(currentMember,"您不是群成员，无法添加用户");
+        // 取出群聊中的用户id
+        List<Long> membersId = groupMemberCache.getMemberList(roomGroup.getId()).stream().map(GroupMember::getId).collect(Collectors.toList());
+        Set<Long> existed = new HashSet<>(membersId);
+        // 判断邀请的用户是否已经在群聊中
+        List<Long> toAddUids = req.getUid().stream().filter(a -> !existed.contains(a)).distinct().collect(Collectors.toList());
+        if(CollectionUtil.isEmpty(toAddUids)){
+            return;
+        }
+        List<GroupMember> groupMembers = ChatAdapter.buildAddUserResp(toAddUids, roomGroup.getId());
+        groupMemBerDao.saveBatch(groupMembers);
+        // 发送添加用户的事件
+        applicationEventPublisher.publishEvent(new GroupAddMemberEvent(this, roomGroup, groupMembers, uid));
     }
 
     private UserRoomRoleEnum getUserRoomRole(RoomGroup roomGroup, Long uid, Room room) {

@@ -3,6 +3,7 @@ package com.hitsz.badboyChat.common.user.utils;
 import cn.hutool.json.JSONUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -37,6 +38,16 @@ public class RedisCommonProcessor {
      */
     public static Long zcard(String key) {
         return redisTemplate.opsForZSet().zCard(key);
+    }
+
+    public static Set<ZSetOperations.TypedTuple<String>> zReverseRangeWithScores(String redisKey, Integer pageSize) {
+        return redisTemplate.opsForZSet().reverseRangeByScoreWithScores(redisKey, Double.MIN_VALUE,
+                Double.MAX_VALUE, 0, pageSize);
+    }
+
+    public static Set<ZSetOperations.TypedTuple<String>> zReverseRangeByScoreWithScores(String redisKey, double max, Integer pageSize) {
+        return redisTemplate.opsForZSet().reverseRangeByScoreWithScores(redisKey, Double.MIN_VALUE, max,
+                1, pageSize);
     }
 
 
@@ -121,5 +132,24 @@ public class RedisCommonProcessor {
 
     public void zRemove(String offlineKey, Long uid) {
         redisTemplate.opsForZSet().remove(offlineKey, uid);
+    }
+
+    /**
+     * 根据Score值查询集合元素, 从小到大排序
+     *
+     * @param key
+     * @param min 最小值
+     * @param max 最大值
+     * @return
+     */
+    public static Set<ZSetOperations.TypedTuple<String>> zRangeByScoreWithScores(String key,
+                                                                                 Double min, Double max) {
+        if (Objects.isNull(min)) {
+            min = Double.MIN_VALUE;
+        }
+        if (Objects.isNull(max)) {
+            max = Double.MAX_VALUE;
+        }
+        return redisTemplate.opsForZSet().rangeByScoreWithScores(key, min, max);
     }
 }

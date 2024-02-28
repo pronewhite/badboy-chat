@@ -11,6 +11,7 @@ import com.hitsz.badboyChat.common.user.mapper.MessageMapper;
 import com.hitsz.badboyChat.common.user.utils.CursorUtils;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -43,5 +44,18 @@ public class MessageDao extends ServiceImpl<MessageMapper, Message>{
                 .eq(Message::getFromUid,uid)
                 .in(Message::getId,msgIds)
                 .list();
+    }
+
+    public List<Message> getMsgSByIds(List<Long> lastMsgIds) {
+        return lambdaQuery()
+                .in(Message::getId,lastMsgIds)
+                .list();
+    }
+
+    public Integer getUnReadCount(Long roomId, Date readTime) {
+        return lambdaQuery()
+                .eq(Message::getRoomId,roomId)
+                .gt(Message::getCreateTime,readTime)
+                .count();
     }
 }

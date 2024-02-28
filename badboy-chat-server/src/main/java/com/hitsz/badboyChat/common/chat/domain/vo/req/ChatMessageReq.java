@@ -3,6 +3,8 @@ package com.hitsz.badboyChat.common.chat.domain.vo.req;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.*;
 
+import javax.validation.constraints.NotNull;
+
 /**
  * @author badboy
  * @version 1.0
@@ -11,11 +13,13 @@ import lombok.*;
 @Data
 @AllArgsConstructor
 @Builder
+@NoArgsConstructor
 public class ChatMessageReq {
-    @NonNull
+    @NotNull
     @ApiModelProperty("房间id")
     private Long roomId;
-    @NonNull
+
+    @NotNull
     @ApiModelProperty("消息类型")
     private Integer msgType;
     @ApiModelProperty("消息内容")

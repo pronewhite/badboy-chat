@@ -75,4 +75,6 @@ public abstract class AbstractMsgHandler<Req> {
     public abstract Object showMsg(Message message) ;
 
     protected abstract Object showRespMsg(Message message);
+
+    public abstract Object showContactMsg(Message message);
 }

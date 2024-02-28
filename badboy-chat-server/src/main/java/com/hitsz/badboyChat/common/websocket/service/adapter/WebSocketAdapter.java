@@ -6,8 +6,10 @@ import com.hitsz.badboyChat.common.chat.domain.dto.ChatMsgRecallDTO;
 import com.hitsz.badboyChat.common.chat.domain.dto.MsgRecall;
 import com.hitsz.badboyChat.common.chat.domain.vo.resp.ChatMemberStatisticResp;
 import com.hitsz.badboyChat.common.chat.domain.vo.resp.ChatMessageResp;
+import com.hitsz.badboyChat.common.chat.enums.MemberChangeTypeEnum;
 import com.hitsz.badboyChat.common.chat.service.ChatService;
 import com.hitsz.badboyChat.common.enums.YesOrNoEnum;
+import com.hitsz.badboyChat.common.user.domain.entity.GroupMember;
 import com.hitsz.badboyChat.common.user.domain.entity.User;
 import com.hitsz.badboyChat.common.websocket.domain.enums.WSRespTypeEnum;
 import com.hitsz.badboyChat.common.websocket.domain.vo.resp.*;
@@ -89,6 +91,30 @@ public class WebSocketAdapter {
         mark.setMarkList(Collections.singletonList(item));
         wsBaseResp.setData(mark);
         return wsBaseResp;
+    }
+
+    public static WSBaseResp<WSMemberChange> buildMemberChangeResp(Long roomId, GroupMember groupMember) {
+        WSBaseResp<WSMemberChange> resp = new WSBaseResp<>();
+        resp.setType(WSRespTypeEnum.MEMBER_CHANGE.getType());
+        WSMemberChange wsMemberChange = new WSMemberChange();
+        wsMemberChange.setRoomId(roomId);
+        wsMemberChange.setUid(groupMember.getUid());
+        wsMemberChange.setChangeType(MemberChangeTypeEnum.REMOVE.getCode());
+        resp.setData(wsMemberChange);
+        return resp;
+    }
+
+    public static WSBaseResp<WSMemberChange> buildAddUserPush(User user, Long roomId) {
+        WSBaseResp<WSMemberChange> resp = new WSBaseResp<>();
+        resp.setType(WSRespTypeEnum.MEMBER_CHANGE.getType());
+        WSMemberChange wsMemberChange = new WSMemberChange();
+        wsMemberChange.setActiveStatus(user.getActiveStatus());
+        wsMemberChange.setUid(user.getId());
+        wsMemberChange.setChangeType(WSMemberChange.CHANGE_TYPE_ADD);
+        wsMemberChange.setRoomId(roomId);
+        wsMemberChange.setLastOptTime(user.getLastOptTime());
+        resp.setData(wsMemberChange);
+        return resp;
     }
 
     public  WSBaseResp<WSOnlineOfflineNotify> buildOnlineResp(User user) {

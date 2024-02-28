@@ -18,6 +18,12 @@ import java.util.List;
 */
 public interface ContactService {
 
+    /**
+     * 获取会话列表
+     * @param uid 用户id，每个人看到的会话肯定是不一样的
+     * @param req 游标翻页请求
+     * @return
+     */
     CursorPageBaseResp<ChatRoomResp> getChatRooms(Long uid, CursorPageBaseReq req);
 
     Collection<MsgReadInfoResp> getMsgReadInfo(Long uid, List<Message> msgs);
