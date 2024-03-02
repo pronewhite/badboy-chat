@@ -23,6 +23,7 @@ import com.hitsz.badboyChat.common.user.service.cache.*;
 import com.hitsz.badboyChat.common.user.utils.AssertUtil;
 import com.hitsz.badboyChat.common.user.utils.CursorUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -56,6 +57,7 @@ public class ContactServiceImpl implements  ContactService{
     @Autowired
     private RoomDao roomDao;
     @Autowired
+    @Lazy
     private RoomService roomService;
 
     @Override

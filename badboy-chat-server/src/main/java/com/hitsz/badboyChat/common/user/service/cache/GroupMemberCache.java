@@ -5,6 +5,7 @@ import com.hitsz.badboyChat.common.user.domain.entity.GroupMember;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -18,6 +19,7 @@ import java.util.List;
 public class GroupMemberCache {
 
     @Autowired
+    @Lazy
     private GroupMemBerDao groupMemBerDao;
 
     @Cacheable(value = "groupMembers", key = "'group:'+ #groupId")

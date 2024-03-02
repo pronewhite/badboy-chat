@@ -60,9 +60,7 @@ public class NettyWebSocketServerHandler extends SimpleChannelInboundHandler<Tex
                 userOffline(ctx.channel());
             }
         }
-    }
-
-    @Override
+    } @Override
     protected void channelRead0(ChannelHandlerContext channelHandlerContext, TextWebSocketFrame textWebSocketFrame) throws Exception {
         String text = textWebSocketFrame.text();
         WSBaseReq wsBaseReq = JSONUtil.toBean(text, WSBaseReq.class);
@@ -77,4 +75,6 @@ public class NettyWebSocketServerHandler extends SimpleChannelInboundHandler<Tex
                 throw new UnsupportedOperationException();
         }
     }
+
+
 }

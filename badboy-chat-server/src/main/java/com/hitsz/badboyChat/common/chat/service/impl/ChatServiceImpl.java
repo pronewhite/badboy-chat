@@ -44,6 +44,7 @@ import com.hitsz.badboyChat.common.user.utils.AssertUtil;
 import com.hitsz.badboyChat.common.websocket.domain.vo.resp.ChatMemberResp;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -81,6 +82,7 @@ public class ChatServiceImpl implements ChatService {
     @Autowired
     private ApplicationEventPublisher applicationEventPublisher;
     @Autowired
+    @Lazy
     private ContactService contactService;
     @Autowired
     private UserCache userCache;
