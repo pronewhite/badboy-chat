@@ -64,6 +64,10 @@ public class MsgSendMQConsumer implements RocketMQListener<MsgSendMQDTO> {
         // 删除缓存
         roomCache.delete(room.getId());
         List<Long> memberList = new ArrayList<>();
+        //git config --global user.name "pronewhite"
+        //git config --global user.email "2287686904@qq.com"
+//        git remote add origin "https://github.com/pronewhite/badboy-chat.git"
+
         // 如果是热门群聊，则推送消息给所有在线的群成员，不在线群成员不推送
         if (room.isHotRoom()) {
             // 更新热门群聊的最新消息时间
