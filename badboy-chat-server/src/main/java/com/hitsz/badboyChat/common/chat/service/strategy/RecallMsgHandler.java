@@ -48,6 +48,11 @@ public class RecallMsgHandler extends AbstractMsgHandler<Object>{
     }
 
     @Override
+    protected Object showReplyMsg(Message message) {
+        return null;
+    }
+
+    @Override
     public Object showContactMsg(Message message) {
         return "撤回了一条消息";
     }

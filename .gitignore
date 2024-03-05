@@ -12,7 +12,7 @@ target/
 *.iml
 *.ipr
 
-
+#敏感信息不上传，避免泄露
 application-prod.properties
 # Package Files #
 *.jar

@@ -12,7 +12,8 @@ import lombok.Getter;
 @Getter
 public enum CommonErrorEnum implements ErrorEnum{
 
-    LOCK_LIMIT(1001,"请求过于频繁，请稍后再试"), PARAM_INVALID(1002, "参数不合法");
+    LOCK_LIMIT(1001,"请求过于频繁，请稍后再试"), PARAM_INVALID(1002, "参数不合法"),
+    PARAM_VALID(1003, "参数不合法");
 
     public Integer type;
     public String desc;
